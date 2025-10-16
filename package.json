@@ -5,6 +5,7 @@
 	"scripts": {
 		"deploy": "wrangler deploy",
 		"dev": "wrangler dev --test-scheduled",
+		"dev:shared": "wrangler dev --test-scheduled --persist-to ../bitusd-app/.wrangler/state",
 		"start": "wrangler dev --test-scheduled",
 		"cf-typegen": "wrangler types"
 	},

@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real, index } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, real, index, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 
 // ============================================
@@ -88,7 +88,7 @@ export const userPoints = sqliteTable(
       .notNull(),
   },
   (table) => ({
-    uniqueUserWeek: index('idx_user_week_unique').on(table.userAddress, table.weekStart),
+    uniqueUserWeek: uniqueIndex('idx_user_week_unique').on(table.userAddress, table.weekStart),
     userIdx: index('idx_user_points_user').on(table.userAddress),
     weekIdx: index('idx_user_points_week').on(table.weekStart),
     seasonIdx: index('idx_user_points_season').on(table.seasonNumber),

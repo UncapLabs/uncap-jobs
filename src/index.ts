@@ -1,8 +1,8 @@
 import { calculateWeeklyPoints } from "./calculate-weekly-points";
 
-async function runWeeklyPoints(env: Env) {
+async function runWeeklyPoints(env: Env, referenceDate?: Date, force = false) {
 	try {
-		await calculateWeeklyPoints(env);
+		await calculateWeeklyPoints(env, { referenceDate, force });
 	} catch (error) {
 		console.error("[weekly-points] run failed", error);
 		throw error;
@@ -18,7 +18,23 @@ export default {
 		}
 
 		if (url.pathname === "/admin/run-weekly-points" && request.method === "POST") {
-			ctx.waitUntil(runWeeklyPoints(env));
+			const referenceParam = url.searchParams.get("reference");
+			const forceParam = url.searchParams.get("force");
+			let referenceDate: Date | undefined;
+			const force = forceParam === "true" || forceParam === "1";
+
+			if (referenceParam) {
+				const parsed = new Date(referenceParam);
+				if (Number.isNaN(parsed.getTime())) {
+					return new Response(
+						JSON.stringify({ error: "Invalid reference date" }),
+						{ status: 400, headers: { "content-type": "application/json" } },
+					);
+				}
+				referenceDate = parsed;
+			}
+
+			ctx.waitUntil(runWeeklyPoints(env, referenceDate, force));
 			return new Response(
 				JSON.stringify({ status: "scheduled" }),
 				{ status: 202, headers: { "content-type": "application/json" } },

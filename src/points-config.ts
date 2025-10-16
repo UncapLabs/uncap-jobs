@@ -1,79 +1,104 @@
 export type WeekConfig = {
-  startDate: string;
-  endDate: string;
-  totalPointsPool: number;
-  formula: {
-    borrowWeight: number;
-    // Place-holders for future activities.
-    stabilityPoolWeight?: number;
-    ekuboLiquidityWeight?: number;
-  };
+	start: string;
+	endExclusive?: string;
+	totalPointsPool?: number;
+	formula: {
+		borrowWeight: number;
+		// Place-holders for future activities.
+		stabilityPoolWeight?: number;
+		ekuboLiquidityWeight?: number;
+	};
 };
 
 export type SeasonConfig = {
-  seasonNumber: number;
-  name: string;
-  startDate: string;
-  endDate: string;
-  weeks: WeekConfig[];
+	seasonNumber: number;
+	name: string;
+	startDate: string;
+	endDate: string;
+	seasonTotalPoints?: number;
+	weightTotal?: number;
+	weeks: WeekConfig[];
 };
 
 export const POINTS_CONFIG: SeasonConfig[] = [
-  {
-    seasonNumber: 1,
-    name: "Season 1",
-    startDate: "2025-01-13",
-    endDate: "2025-02-21",
-    weeks: [
-      {
-        startDate: "2025-01-13",
-        endDate: "2025-01-19",
-        totalPointsPool: 80_770,
-        formula: { borrowWeight: 1 },
-      },
-      {
-        startDate: "2025-01-20",
-        endDate: "2025-01-26",
-        totalPointsPool: 80_770,
-        formula: { borrowWeight: 1 },
-      },
-      {
-        startDate: "2025-01-27",
-        endDate: "2025-02-02",
-        totalPointsPool: 80_770,
-        formula: { borrowWeight: 1 },
-      },
-      {
-        startDate: "2025-02-03",
-        endDate: "2025-02-09",
-        totalPointsPool: 80_770,
-        formula: { borrowWeight: 1 },
-      },
-      {
-        startDate: "2025-02-10",
-        endDate: "2025-02-16",
-        totalPointsPool: 80_770,
-        formula: { borrowWeight: 1 },
-      },
-      {
-        startDate: "2025-02-17",
-        endDate: "2025-02-21",
-        totalPointsPool: 80_770,
-        formula: { borrowWeight: 1 },
-      },
-    ],
-  },
+	{
+		seasonNumber: 1,
+		name: 'Season 1',
+		startDate: '2025-10-10',
+		endDate: '2026-01-09',
+		seasonTotalPoints: 1_050_000,
+		weightTotal: 18.817154,
+		weeks: [
+			{
+				start: '2025-10-10T06:00:00Z',
+				endExclusive: '2025-10-17T06:00:00Z',
+				formula: { borrowWeight: 0.8, stabilityPoolWeight: 0.5, ekuboLiquidityWeight: 0.3 },
+			},
+			{
+				start: '2025-10-17T06:00:00Z',
+				endExclusive: '2025-10-24T06:00:00Z',
+				formula: { borrowWeight: 0.8, stabilityPoolWeight: 0.5, ekuboLiquidityWeight: 0.3 },
+			},
+			{
+				start: '2025-10-24T06:00:00Z',
+				endExclusive: '2025-10-31T06:00:00Z',
+				formula: { borrowWeight: 0.8, stabilityPoolWeight: 0.5, ekuboLiquidityWeight: 0.3 },
+			},
+			{
+				start: '2025-10-31T06:00:00Z',
+				endExclusive: '2025-11-07T06:00:00Z',
+				formula: { borrowWeight: 0.8, stabilityPoolWeight: 0.5, ekuboLiquidityWeight: 0.3 },
+			},
+			{
+				start: '2025-11-07T06:00:00Z',
+				endExclusive: '2025-11-14T06:00:00Z',
+				formula: { borrowWeight: 0.8, stabilityPoolWeight: 0.5, ekuboLiquidityWeight: 0.3 },
+			},
+			{
+				start: '2025-11-14T06:00:00Z',
+				endExclusive: '2025-11-21T06:00:00Z',
+				formula: { borrowWeight: 0.8, stabilityPoolWeight: 0.5, ekuboLiquidityWeight: 0.3 },
+			},
+			{
+				start: '2025-11-21T06:00:00Z',
+				endExclusive: '2025-11-28T06:00:00Z',
+				formula: { borrowWeight: 0.8, stabilityPoolWeight: 0.5, ekuboLiquidityWeight: 0.3 },
+			},
+			{
+				start: '2025-11-28T06:00:00Z',
+				endExclusive: '2025-12-05T06:00:00Z',
+				formula: { borrowWeight: 0.8, stabilityPoolWeight: 0.5, ekuboLiquidityWeight: 0.3 },
+			},
+			{
+				start: '2025-12-05T06:00:00Z',
+				endExclusive: '2025-12-12T06:00:00Z',
+				formula: { borrowWeight: 0.8, stabilityPoolWeight: 0.5, ekuboLiquidityWeight: 0.3 },
+			},
+			{
+				start: '2025-12-12T06:00:00Z',
+				endExclusive: '2025-12-19T06:00:00Z',
+				formula: { borrowWeight: 0.8, stabilityPoolWeight: 0.5, ekuboLiquidityWeight: 0.3 },
+			},
+			{
+				start: '2025-12-19T06:00:00Z',
+				endExclusive: '2025-12-26T06:00:00Z',
+				formula: { borrowWeight: 0.8, stabilityPoolWeight: 0.5, ekuboLiquidityWeight: 0.3 },
+			},
+			{
+				start: '2025-12-26T06:00:00Z',
+				endExclusive: '2026-01-02T06:00:00Z',
+				formula: { borrowWeight: 0.8, stabilityPoolWeight: 0.5, ekuboLiquidityWeight: 0.3 },
+			},
+			{
+				start: '2026-01-02T06:00:00Z',
+				endExclusive: '2026-01-09T06:00:00Z',
+				formula: { borrowWeight: 0.8, stabilityPoolWeight: 0.5, ekuboLiquidityWeight: 0.3 },
+			},
+		],
+	},
 ];
 
 export const REFERRAL_CONFIG = {
-  bonusRate: 0.15,
-  minPointsForBonus: 0,
+	bonusRate: 0.1,
+	minPointsForBonus: 0,
 };
-
-export function getWeekConfig(weekStart: string): WeekConfig | undefined {
-  for (const season of POINTS_CONFIG) {
-    const week = season.weeks.find((w) => w.startDate === weekStart);
-    if (week) return week;
-  }
-  return undefined;
-}
