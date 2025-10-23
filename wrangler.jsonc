@@ -54,19 +54,9 @@
 	// "services": [{ "binding": "MY_SERVICE", "service": "my-service" }]
 	"triggers": {
 		"crons": [
-			"0 10 * * FRI"
+			"0 10 * * FRI",
 		]
 	},
 	"env": {
-		"dev": {
-			"d1_databases": [
-				{
-					"binding": "DB",
-					"database_name": "uncap-points",
-					"database_id": "e283d907-bd57-4b7c-a4d6-ffc13bc0755b",
-					"migrations_dir": "migrations"
-				}
-			]
-		}
 	}
 }
