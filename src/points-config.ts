@@ -6,7 +6,8 @@ export type WeekConfig = {
 		borrowWeight: number;
 		// Place-holders for future activities.
 		stabilityPoolWeight?: number;
-		ekuboLiquidityWeight?: number;
+		usduLiquidityWeight?: number;
+		usdcLiquidityWeight?: number;
 	};
 };
 
@@ -32,71 +33,140 @@ export const POINTS_CONFIG: SeasonConfig[] = [
 			{
 				start: '2025-10-10T06:00:00Z',
 				endExclusive: '2025-10-17T06:00:00Z',
-				formula: { borrowWeight: 0.8, stabilityPoolWeight: 0.5, ekuboLiquidityWeight: 0.3 },
+				formula: {
+					borrowWeight: 0.8,
+					stabilityPoolWeight: 0.5,
+					usduLiquidityWeight: 0.3,
+					usdcLiquidityWeight: 0.3,
+				},
 			},
 			{
 				start: '2025-10-17T06:00:00Z',
 				endExclusive: '2025-10-24T06:00:00Z',
-				formula: { borrowWeight: 0.7, stabilityPoolWeight: 0.2, ekuboLiquidityWeight: 0.5 },
+				formula: {
+					borrowWeight: 0.7,
+					stabilityPoolWeight: 0.2,
+					usduLiquidityWeight: 0.5,
+					usdcLiquidityWeight: 0.5,
+				},
 			},
 			{
 				start: '2025-10-24T06:00:00Z',
 				endExclusive: '2025-10-31T06:00:00Z',
-				formula: { borrowWeight: 0.7, stabilityPoolWeight: 0.2, ekuboLiquidityWeight: 0.5 },
+				formula: {
+					borrowWeight: 0.7,
+					stabilityPoolWeight: 0.2,
+					usduLiquidityWeight: 0.4,
+					usdcLiquidityWeight: 0.6,
+				},
 			},
 			{
 				start: '2025-10-31T06:00:00Z',
 				endExclusive: '2025-11-07T06:00:00Z',
-				formula: { borrowWeight: 0.7, stabilityPoolWeight: 0.2, ekuboLiquidityWeight: 0.5 },
+				formula: {
+					borrowWeight: 0.7,
+					stabilityPoolWeight: 0.2,
+					usduLiquidityWeight: 0.4,
+					usdcLiquidityWeight: 0.6,
+				},
 			},
 			{
 				start: '2025-11-07T06:00:00Z',
 				endExclusive: '2025-11-14T06:00:00Z',
-				formula: { borrowWeight: 0.7, stabilityPoolWeight: 0.2, ekuboLiquidityWeight: 0.5 },
+				formula: {
+					borrowWeight: 0.7,
+					stabilityPoolWeight: 0.2,
+					usduLiquidityWeight: 0.4,
+					usdcLiquidityWeight: 0.6,
+				},
 			},
 			{
 				start: '2025-11-14T06:00:00Z',
 				endExclusive: '2025-11-21T06:00:00Z',
-				formula: { borrowWeight: 0.7, stabilityPoolWeight: 0.2, ekuboLiquidityWeight: 0.5 },
+				formula: {
+					borrowWeight: 0.7,
+					stabilityPoolWeight: 0.2,
+					usduLiquidityWeight: 0.4,
+					usdcLiquidityWeight: 0.6,
+				},
 			},
 			{
 				start: '2025-11-21T06:00:00Z',
 				endExclusive: '2025-11-28T06:00:00Z',
-				formula: { borrowWeight: 0.7, stabilityPoolWeight: 0.2, ekuboLiquidityWeight: 0.5 },
+				formula: {
+					borrowWeight: 0.7,
+					stabilityPoolWeight: 0.2,
+					usduLiquidityWeight: 0.4,
+					usdcLiquidityWeight: 0.6,
+				},
 			},
 			{
 				start: '2025-11-28T06:00:00Z',
 				endExclusive: '2025-12-05T06:00:00Z',
-				formula: { borrowWeight: 0.7, stabilityPoolWeight: 0.2, ekuboLiquidityWeight: 0.5 },
+				formula: {
+					borrowWeight: 0.7,
+					stabilityPoolWeight: 0.2,
+					usduLiquidityWeight: 0.4,
+					usdcLiquidityWeight: 0.6,
+				},
 			},
 			{
 				start: '2025-12-05T06:00:00Z',
 				endExclusive: '2025-12-12T06:00:00Z',
-				formula: { borrowWeight: 0.7, stabilityPoolWeight: 0.2, ekuboLiquidityWeight: 0.5 },
+				formula: {
+					borrowWeight: 0.7,
+					stabilityPoolWeight: 0.2,
+					usduLiquidityWeight: 0.4,
+					usdcLiquidityWeight: 0.6,
+				},
 			},
 			{
 				start: '2025-12-12T06:00:00Z',
 				endExclusive: '2025-12-19T06:00:00Z',
-				formula: { borrowWeight: 0.7, stabilityPoolWeight: 0.2, ekuboLiquidityWeight: 0.5 },
+				formula: {
+					borrowWeight: 0.7,
+					stabilityPoolWeight: 0.2,
+					usduLiquidityWeight: 0.4,
+					usdcLiquidityWeight: 0.6,
+				},
 			},
 			{
 				start: '2025-12-19T06:00:00Z',
 				endExclusive: '2025-12-26T06:00:00Z',
-				formula: { borrowWeight: 0.7, stabilityPoolWeight: 0.2, ekuboLiquidityWeight: 0.5 },
+				formula: {
+					borrowWeight: 0.7,
+					stabilityPoolWeight: 0.2,
+					usduLiquidityWeight: 0.4,
+					usdcLiquidityWeight: 0.6,
+				},
 			},
 			{
 				start: '2025-12-26T06:00:00Z',
 				endExclusive: '2026-01-02T06:00:00Z',
-				formula: { borrowWeight: 0.7, stabilityPoolWeight: 0.2, ekuboLiquidityWeight: 0.5 },
+				formula: {
+					borrowWeight: 0.7,
+					stabilityPoolWeight: 0.2,
+					usduLiquidityWeight: 0.4,
+					usdcLiquidityWeight: 0.6,
+				},
 			},
 			{
 				start: '2026-01-02T06:00:00Z',
 				endExclusive: '2026-01-09T06:00:00Z',
-				formula: { borrowWeight: 0.7, stabilityPoolWeight: 0.2, ekuboLiquidityWeight: 0.5 },
+				formula: {
+					borrowWeight: 0.7,
+					stabilityPoolWeight: 0.2,
+					usduLiquidityWeight: 0.4,
+					usdcLiquidityWeight: 0.6,
+				},
 			},
 		],
 	},
 ];
+
+export const BLACKLISTED_ADDRESSES = new Set<string>([
+	'0x0620c6622add9c6afd0577ec73584a3024448d955c64d3d6d7e2f99a600afc56',
+]);
 
 export const REFERRAL_CONFIG = {
 	bonusRate: 0.1,

@@ -1,6 +1,12 @@
 import { createDbClient, type DbClient } from "./db/client";
-import { referrals, userPoints, userTotalPoints } from "./db/schema";
 import {
+  referralPointBreakdowns,
+  referrals,
+  userPoints,
+  userTotalPoints,
+} from "./db/schema";
+import {
+  BLACKLISTED_ADDRESSES,
   POINTS_CONFIG,
   REFERRAL_CONFIG,
   type WeekConfig,
@@ -12,9 +18,10 @@ import { eq, sql } from "drizzle-orm";
  * Scoring constants – tweak as needed.
  */
 const WEEKLY_POINTS_POOL = 80_770;
-const BORROW_WEIGHT = 0.8;
-const STABILITY_POOL_WEIGHT = 0.5;
-const LIQUIDITY_WEIGHT = 0.3;
+const BORROW_WEIGHT = 0.7;
+const STABILITY_POOL_WEIGHT = 0.2;
+const USDU_LIQUIDITY_WEIGHT = 0.5;
+const USDC_LIQUIDITY_WEIGHT = 0.5;
 const MAX_LTV = 0.8696;
 const LTV_MULTIPLIER_FACTOR = 2;
 const WEIGHT_DIVISOR = 12;
@@ -27,6 +34,8 @@ type DuneRow = {
   debt: number | null;
   in_stability_pool: number | null;
   lp_value_usd?: number | null;
+  usdu_in_lp?: number | null;
+  usdc_in_lp?: number | null;
 };
 
 type DuneResult<T> = {
@@ -57,6 +66,17 @@ type CalculationOptions = {
   referenceDate?: Date;
   force?: boolean;
 };
+
+type ReferralBreakdown = {
+  referrer: string;
+  referee: string;
+  refereeBasePoints: number;
+  bonusPoints: number;
+};
+
+function isBlacklistedAddress(address: string): boolean {
+  return BLACKLISTED_ADDRESSES.has(address.toLowerCase());
+}
 
 export async function calculateWeeklyPoints(
   env: Env,
@@ -125,6 +145,8 @@ export async function calculateWeeklyPoints(
   const basePoints = new Map<string, number>();
 
   for (const [address, raw] of scores.byUser.entries()) {
+    if (isBlacklistedAddress(address)) continue;
+
     const totalRaw = raw.borrow + raw.stability + raw.liquidity;
     if (totalRaw <= 0) continue;
     basePoints.set(address, totalRaw * normalization);
@@ -135,11 +157,21 @@ export async function calculateWeeklyPoints(
     return;
   }
 
-  const referralBonuses = await computeReferralBonuses(db, basePoints);
+  const referralBonusResult = await computeReferralBonuses(
+    db,
+    basePoints,
+    weekStart,
+    weekEndExclusive
+  );
+  const referralBonuses = referralBonusResult.totals;
+  const referralBreakdown = referralBonusResult.breakdown;
   const addresses = new Set([...basePoints.keys(), ...referralBonuses.keys()]);
 
   const rowsToInsert = [];
+  const calculationTime = new Date();
   for (const address of addresses) {
+    if (isBlacklistedAddress(address)) continue;
+
     const base = basePoints.get(address) ?? 0;
     const bonus = referralBonuses.get(address) ?? 0;
     const total = base + bonus;
@@ -153,7 +185,7 @@ export async function calculateWeeklyPoints(
       basePoints: base,
       referralBonus: bonus,
       totalPoints: total,
-      calculatedAt: new Date(),
+      calculatedAt: calculationTime,
     });
   }
 
@@ -167,6 +199,28 @@ export async function calculateWeeklyPoints(
     const batch = rowsToInsert.slice(i, i + BATCH_SIZE);
     console.log(`[weekly-points] inserting batch of ${batch.length}`);
     await db.insert(userPoints).values(batch);
+  }
+
+  if (referralBreakdown.length) {
+    await db
+      .delete(referralPointBreakdowns)
+      .where(eq(referralPointBreakdowns.weekStart, weekStart));
+
+    const referralRows = referralBreakdown.map((entry) => ({
+      referrerAddress: entry.referrer,
+      refereeAddress: entry.referee,
+      weekStart,
+      seasonNumber: seasonInfo.seasonNumber,
+      weekNumber: seasonInfo.weekNumber,
+      refereeBasePoints: entry.refereeBasePoints,
+      bonusPoints: entry.bonusPoints,
+      calculatedAt: calculationTime,
+    }));
+
+    for (let i = 0; i < referralRows.length; i += BATCH_SIZE) {
+      const batch = referralRows.slice(i, i + BATCH_SIZE);
+      await db.insert(referralPointBreakdowns).values(batch);
+    }
   }
 
   await updateTotals(db, seasonInfo.seasonNumber);
@@ -228,8 +282,10 @@ function accumulateScores(
   const borrowWeight = weekConfig.formula.borrowWeight ?? BORROW_WEIGHT;
   const stabilityWeight =
     weekConfig.formula.stabilityPoolWeight ?? STABILITY_POOL_WEIGHT;
-  const liquidityWeight =
-    weekConfig.formula.ekuboLiquidityWeight ?? LIQUIDITY_WEIGHT;
+  const usduLiquidityWeight =
+    weekConfig.formula.usduLiquidityWeight ?? USDU_LIQUIDITY_WEIGHT;
+  const usdcLiquidityWeight =
+    weekConfig.formula.usdcLiquidityWeight ?? USDC_LIQUIDITY_WEIGHT;
 
   const ensureEntry = (address: string) => {
     const key = address.toLowerCase();
@@ -243,11 +299,20 @@ function accumulateScores(
   for (const row of rows) {
     const address = row.owner?.toLowerCase();
     const timestamp = row.hour ?? row.snapshot_time;
-    if (!address || !timestamp || !inWeek(timestamp, weekStart, weekEndExclusive)) continue;
+    if (
+      !address ||
+      !timestamp ||
+      !inWeek(timestamp, weekStart, weekEndExclusive) ||
+      isBlacklistedAddress(address)
+    ) {
+      continue;
+    }
 
     const collateralUsd = Math.max(Number(row.collateral_usd ?? 0), 0);
     const debtUsd = Math.max(Number(row.debt ?? 0), 0);
     const poolUsd = Math.max(Number(row.in_stability_pool ?? 0), 0);
+    const usduUsd = Math.max(Number(row.usdu_in_lp ?? 0), 0);
+    const usdcUsd = Math.max(Number(row.usdc_in_lp ?? 0), 0);
     const lpUsd = Math.max(Number(row.lp_value_usd ?? 0), 0);
 
     const entry = ensureEntry(address);
@@ -269,10 +334,36 @@ function accumulateScores(
       totalRaw += stabilityScore;
     }
 
-    if (liquidityWeight > 0 && lpUsd > 0) {
-      const liquidityScore = lpUsd * liquidityWeight;
-      entry.liquidity += liquidityScore;
-      totalRaw += liquidityScore;
+    let liquidityAdded = false;
+
+    if (usduLiquidityWeight > 0 && usduUsd > 0) {
+      const usduScore = usduUsd * usduLiquidityWeight;
+      entry.liquidity += usduScore;
+      totalRaw += usduScore;
+      liquidityAdded = true;
+    }
+
+    if (usdcLiquidityWeight > 0 && usdcUsd > 0) {
+      const usdcScore = usdcUsd * usdcLiquidityWeight;
+      entry.liquidity += usdcScore;
+      totalRaw += usdcScore;
+      liquidityAdded = true;
+    }
+
+    if (!liquidityAdded && lpUsd > 0) {
+      const activeWeights = [];
+      if (usduLiquidityWeight > 0) activeWeights.push(usduLiquidityWeight);
+      if (usdcLiquidityWeight > 0) activeWeights.push(usdcLiquidityWeight);
+      const fallbackWeight =
+        activeWeights.length > 0
+          ? activeWeights.reduce((sum, weight) => sum + weight, 0) /
+            activeWeights.length
+          : 0;
+      if (fallbackWeight > 0) {
+        const fallbackScore = lpUsd * fallbackWeight;
+        entry.liquidity += fallbackScore;
+        totalRaw += fallbackScore;
+      }
     }
   }
 
@@ -284,24 +375,57 @@ function accumulateScores(
  */
 async function computeReferralBonuses(
   db: DbClient,
-  basePoints: Map<string, number>
-) {
+  basePoints: Map<string, number>,
+  weekStartIso: string,
+  weekEndIso: string
+): Promise<{ totals: Map<string, number>; breakdown: ReferralBreakdown[] }> {
   const results = await db.select().from(referrals).all();
-  if (!results.length) return new Map<string, number>();
+  if (!results.length) return { totals: new Map(), breakdown: [] };
 
   const minPoints = REFERRAL_CONFIG.minPointsForBonus ?? 0;
+  const weekStartTime = parseUtc(weekStartIso).getTime();
+  const weekEndTime = parseUtc(weekEndIso).getTime();
+  const hasValidBounds =
+    Number.isFinite(weekStartTime) && Number.isFinite(weekEndTime);
+  const isWithinWeek = (timestamp: number) =>
+    !hasValidBounds ||
+    (Number.isFinite(timestamp) &&
+      timestamp >= weekStartTime &&
+      timestamp < weekEndTime);
 
   const bonuses = new Map<string, number>();
+  const breakdown: ReferralBreakdown[] = [];
   for (const referral of results) {
-    const refereeScore =
-      basePoints.get(referral.refereeAddress.toLowerCase()) ?? 0;
+    const referee = referral.refereeAddress.toLowerCase();
+    if (isBlacklistedAddress(referee)) continue;
+
+    const appliedAtRaw = referral.appliedAt;
+    const appliedAtMs =
+      appliedAtRaw instanceof Date
+        ? appliedAtRaw.getTime()
+        : Number(appliedAtRaw ?? NaN);
+    const appliedRetroactively = Boolean(referral.appliedRetroactively);
+
+    if (!appliedRetroactively && Number.isFinite(appliedAtMs)) {
+      if (!isWithinWeek(appliedAtMs)) continue;
+    }
+
+    const refereeScore = basePoints.get(referee) ?? 0;
     if (refereeScore < minPoints) continue;
 
     const bonus = refereeScore * REFERRAL_CONFIG.bonusRate;
     const referrer = referral.referrerAddress.toLowerCase();
+    if (isBlacklistedAddress(referrer)) continue;
+
     bonuses.set(referrer, (bonuses.get(referrer) ?? 0) + bonus);
+    breakdown.push({
+      referrer,
+      referee,
+      refereeBasePoints: refereeScore,
+      bonusPoints: bonus,
+    });
   }
-  return bonuses;
+  return { totals: bonuses, breakdown };
 }
 
 /**
