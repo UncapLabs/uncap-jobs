@@ -117,14 +117,14 @@ export async function exportPointsSnapshot(
 				...pointsRows.map((row) => [
 					row.userAddress ?? "",
 					row.weekStart ?? "",
-					toString(row.seasonNumber),
-					toString(row.weekNumber),
-					toNumeric(row.basePoints),
-					toNumeric(row.referralBonus),
-					toNumeric(row.totalPoints),
+					toValue(row.seasonNumber),
+					toValue(row.weekNumber),
+					toValue(row.basePoints),
+					toValue(row.referralBonus),
+					toValue(row.totalPoints),
 					row.calculationMetadata ?? "",
-					toTimestamp(row.calculatedAt),
-					toTimestamp(row.createdAt),
+					toValue(row.calculatedAt),
+					toValue(row.createdAt),
 				]),
 			],
 		},
@@ -146,12 +146,12 @@ export async function exportPointsSnapshot(
 					row.referrerAddress ?? "",
 					row.refereeAddress ?? "",
 					row.weekStart ?? "",
-					toString(row.seasonNumber),
-					toString(row.weekNumber),
-					toNumeric(row.refereeBasePoints),
-					toNumeric(row.bonusPoints),
-					toTimestamp(row.calculatedAt),
-					toTimestamp(row.createdAt),
+					toValue(row.seasonNumber),
+					toValue(row.weekNumber),
+					toValue(row.refereeBasePoints),
+					toValue(row.bonusPoints),
+					toValue(row.calculatedAt),
+					toValue(row.createdAt),
 				]),
 			],
 		},
@@ -171,8 +171,8 @@ export async function exportPointsSnapshot(
 					row.refereeAddress ?? "",
 					row.refereeAnonymousName ?? "",
 					row.referralCode ?? "",
-					toTimestamp(row.appliedAt),
-					toBoolean(row.appliedRetroactively),
+					toValue(row.appliedAt),
+					toValue(row.appliedRetroactively),
 				]),
 			],
 		},
@@ -183,7 +183,7 @@ export async function exportPointsSnapshot(
 				...referralCodeRows.map((row) => [
 					row.userAddress ?? "",
 					row.referralCode ?? "",
-					toTimestamp(row.createdAt),
+					toValue(row.createdAt),
 				]),
 			],
 		},
@@ -200,11 +200,11 @@ export async function exportPointsSnapshot(
 				],
 				...totalsRows.map((row) => [
 					row.userAddress ?? "",
-					toNumeric(row.season1Points),
-					toNumeric(row.season2Points),
-					toNumeric(row.season3Points),
-					toNumeric(row.allTimePoints),
-					toTimestamp(row.lastUpdated),
+					toValue(row.season1Points),
+					toValue(row.season2Points),
+					toValue(row.season3Points),
+					toValue(row.allTimePoints),
+					toValue(row.lastUpdated),
 				]),
 			],
 		},
@@ -243,50 +243,11 @@ function csvEscape(value: unknown): string {
 	return str;
 }
 
-function toString(value: unknown): string {
+function toValue(value: unknown): string {
 	if (value === null || value === undefined) return "";
-	return String(value);
-}
-
-function toNumeric(value: unknown): string {
-	if (value === null || value === undefined) return "";
-	if (value instanceof Date) return toTimestamp(value);
-	if (typeof value === "number") {
-		return Number.isFinite(value) ? String(value) : "";
-	}
-	const asNumber = Number(value);
-	return Number.isFinite(asNumber) ? String(asNumber) : String(value);
-}
-
-function toBoolean(value: unknown): string {
+	if (value instanceof Date) return value.toISOString();
 	if (typeof value === "boolean") return value ? "true" : "false";
-	if (value === null || value === undefined) return "";
-	if (typeof value === "number") return value !== 0 ? "true" : "false";
-	if (typeof value === "string") {
-		const normalized = value.trim().toLowerCase();
-		if (!normalized) return "";
-		return normalized === "true" || normalized === "1" ? "true" : "false";
-	}
-	return "";
-}
-
-function toTimestamp(value: unknown): string {
-	if (!value) return "";
-	if (value instanceof Date) return canonicalIso(value);
-	if (typeof value === "number" && Number.isFinite(value)) {
-		return canonicalIso(new Date(value));
-	}
-	if (typeof value === "string") {
-		const asNumber = Number(value);
-		if (Number.isFinite(asNumber)) {
-			return canonicalIso(new Date(asNumber));
-		}
-		const parsed = new Date(value);
-		if (!Number.isNaN(parsed.getTime())) {
-			return canonicalIso(parsed);
-		}
-	}
-	return "";
+	return String(value);
 }
 
 function formatDate(date: Date): string {
@@ -294,9 +255,5 @@ function formatDate(date: Date): string {
 }
 
 function formatTimestampForKey(date: Date): string {
-	return canonicalIso(date).replace(/[:\-]/g, "").replace(".000Z", "Z");
-}
-
-function canonicalIso(date: Date): string {
-	return date.toISOString().replace(".000Z", "Z");
+	return date.toISOString().replace(/[:\-\.]/g, "").replace("000Z", "Z");
 }
