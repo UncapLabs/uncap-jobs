@@ -3,7 +3,7 @@
 	"version": "0.0.0",
 	"private": true,
 	"scripts": {
-		"deploy": "wrangler deploy",
+		"deploy": "wrangler types && wrangler deploy",
 		"dev": "wrangler dev --test-scheduled",
 		"dev:shared": "wrangler dev --test-scheduled --persist-to ../bitusd-app/.wrangler/state",
 		"start": "wrangler dev --test-scheduled",
