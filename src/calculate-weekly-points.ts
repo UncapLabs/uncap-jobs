@@ -20,8 +20,7 @@ import { eq, sql } from "drizzle-orm";
 const WEEKLY_POINTS_POOL = 80_770;
 const BORROW_WEIGHT = 0.7;
 const STABILITY_POOL_WEIGHT = 0.2;
-const USDU_LIQUIDITY_WEIGHT = 0.5;
-const USDC_LIQUIDITY_WEIGHT = 0.5;
+const EKUBO_LIQUIDITY_WEIGHT = 0.5;
 const MAX_LTV = 0.8696;
 const LTV_MULTIPLIER_FACTOR = 2;
 const WEIGHT_DIVISOR = 12;
@@ -282,10 +281,8 @@ function accumulateScores(
   const borrowWeight = weekConfig.formula.borrowWeight ?? BORROW_WEIGHT;
   const stabilityWeight =
     weekConfig.formula.stabilityPoolWeight ?? STABILITY_POOL_WEIGHT;
-  const usduLiquidityWeight =
-    weekConfig.formula.usduLiquidityWeight ?? USDU_LIQUIDITY_WEIGHT;
-  const usdcLiquidityWeight =
-    weekConfig.formula.usdcLiquidityWeight ?? USDC_LIQUIDITY_WEIGHT;
+  const ekuboLiquidityWeight =
+    weekConfig.formula.ekuboLiquidityWeight ?? EKUBO_LIQUIDITY_WEIGHT;
 
   const ensureEntry = (address: string) => {
     const key = address.toLowerCase();
@@ -311,8 +308,6 @@ function accumulateScores(
     const collateralUsd = Math.max(Number(row.collateral_usd ?? 0), 0);
     const debtUsd = Math.max(Number(row.debt ?? 0), 0);
     const poolUsd = Math.max(Number(row.in_stability_pool ?? 0), 0);
-    const usduUsd = Math.max(Number(row.usdu_in_lp ?? 0), 0);
-    const usdcUsd = Math.max(Number(row.usdc_in_lp ?? 0), 0);
     const lpUsd = Math.max(Number(row.lp_value_usd ?? 0), 0);
 
     const entry = ensureEntry(address);
@@ -334,36 +329,10 @@ function accumulateScores(
       totalRaw += stabilityScore;
     }
 
-    let liquidityAdded = false;
-
-    if (usduLiquidityWeight > 0 && usduUsd > 0) {
-      const usduScore = usduUsd * usduLiquidityWeight;
-      entry.liquidity += usduScore;
-      totalRaw += usduScore;
-      liquidityAdded = true;
-    }
-
-    if (usdcLiquidityWeight > 0 && usdcUsd > 0) {
-      const usdcScore = usdcUsd * usdcLiquidityWeight;
-      entry.liquidity += usdcScore;
-      totalRaw += usdcScore;
-      liquidityAdded = true;
-    }
-
-    if (!liquidityAdded && lpUsd > 0) {
-      const activeWeights = [];
-      if (usduLiquidityWeight > 0) activeWeights.push(usduLiquidityWeight);
-      if (usdcLiquidityWeight > 0) activeWeights.push(usdcLiquidityWeight);
-      const fallbackWeight =
-        activeWeights.length > 0
-          ? activeWeights.reduce((sum, weight) => sum + weight, 0) /
-            activeWeights.length
-          : 0;
-      if (fallbackWeight > 0) {
-        const fallbackScore = lpUsd * fallbackWeight;
-        entry.liquidity += fallbackScore;
-        totalRaw += fallbackScore;
-      }
+    if (ekuboLiquidityWeight > 0 && lpUsd > 0) {
+      const liquidityScore = lpUsd * ekuboLiquidityWeight;
+      entry.liquidity += liquidityScore;
+      totalRaw += liquidityScore;
     }
   }
 

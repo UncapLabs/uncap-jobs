@@ -6,8 +6,7 @@ export type WeekConfig = {
 		borrowWeight: number;
 		// Place-holders for future activities.
 		stabilityPoolWeight?: number;
-		usduLiquidityWeight?: number;
-		usdcLiquidityWeight?: number;
+		ekuboLiquidityWeight?: number;
 	};
 };
 
@@ -36,8 +35,7 @@ export const POINTS_CONFIG: SeasonConfig[] = [
 				formula: {
 					borrowWeight: 0.8,
 					stabilityPoolWeight: 0.5,
-					usduLiquidityWeight: 0.3,
-					usdcLiquidityWeight: 0.3,
+					ekuboLiquidityWeight: 0.3,
 				},
 			},
 			{
@@ -46,8 +44,7 @@ export const POINTS_CONFIG: SeasonConfig[] = [
 				formula: {
 					borrowWeight: 0.7,
 					stabilityPoolWeight: 0.2,
-					usduLiquidityWeight: 0.5,
-					usdcLiquidityWeight: 0.5,
+					ekuboLiquidityWeight: 0.5,
 				},
 			},
 			{
@@ -56,8 +53,7 @@ export const POINTS_CONFIG: SeasonConfig[] = [
 				formula: {
 					borrowWeight: 0.7,
 					stabilityPoolWeight: 0.2,
-					usduLiquidityWeight: 0.4,
-					usdcLiquidityWeight: 0.6,
+					ekuboLiquidityWeight: 0.5,
 				},
 			},
 			{
@@ -66,8 +62,7 @@ export const POINTS_CONFIG: SeasonConfig[] = [
 				formula: {
 					borrowWeight: 0.7,
 					stabilityPoolWeight: 0.2,
-					usduLiquidityWeight: 0.4,
-					usdcLiquidityWeight: 0.6,
+					ekuboLiquidityWeight: 0.5,
 				},
 			},
 			{
@@ -76,8 +71,7 @@ export const POINTS_CONFIG: SeasonConfig[] = [
 				formula: {
 					borrowWeight: 0.7,
 					stabilityPoolWeight: 0.2,
-					usduLiquidityWeight: 0.4,
-					usdcLiquidityWeight: 0.6,
+					ekuboLiquidityWeight: 0.5,
 				},
 			},
 			{
@@ -86,8 +80,7 @@ export const POINTS_CONFIG: SeasonConfig[] = [
 				formula: {
 					borrowWeight: 0.7,
 					stabilityPoolWeight: 0.2,
-					usduLiquidityWeight: 0.4,
-					usdcLiquidityWeight: 0.6,
+					ekuboLiquidityWeight: 0.5,
 				},
 			},
 			{
@@ -96,8 +89,7 @@ export const POINTS_CONFIG: SeasonConfig[] = [
 				formula: {
 					borrowWeight: 0.7,
 					stabilityPoolWeight: 0.2,
-					usduLiquidityWeight: 0.4,
-					usdcLiquidityWeight: 0.6,
+					ekuboLiquidityWeight: 0.5,
 				},
 			},
 			{
@@ -106,8 +98,7 @@ export const POINTS_CONFIG: SeasonConfig[] = [
 				formula: {
 					borrowWeight: 0.7,
 					stabilityPoolWeight: 0.2,
-					usduLiquidityWeight: 0.4,
-					usdcLiquidityWeight: 0.6,
+					ekuboLiquidityWeight: 0.5,
 				},
 			},
 			{
@@ -116,8 +107,7 @@ export const POINTS_CONFIG: SeasonConfig[] = [
 				formula: {
 					borrowWeight: 0.7,
 					stabilityPoolWeight: 0.2,
-					usduLiquidityWeight: 0.4,
-					usdcLiquidityWeight: 0.6,
+					ekuboLiquidityWeight: 0.5,
 				},
 			},
 			{
@@ -126,8 +116,7 @@ export const POINTS_CONFIG: SeasonConfig[] = [
 				formula: {
 					borrowWeight: 0.7,
 					stabilityPoolWeight: 0.2,
-					usduLiquidityWeight: 0.4,
-					usdcLiquidityWeight: 0.6,
+					ekuboLiquidityWeight: 0.5,
 				},
 			},
 			{
@@ -136,8 +125,7 @@ export const POINTS_CONFIG: SeasonConfig[] = [
 				formula: {
 					borrowWeight: 0.7,
 					stabilityPoolWeight: 0.2,
-					usduLiquidityWeight: 0.4,
-					usdcLiquidityWeight: 0.6,
+					ekuboLiquidityWeight: 0.5,
 				},
 			},
 			{
@@ -146,8 +134,7 @@ export const POINTS_CONFIG: SeasonConfig[] = [
 				formula: {
 					borrowWeight: 0.7,
 					stabilityPoolWeight: 0.2,
-					usduLiquidityWeight: 0.4,
-					usdcLiquidityWeight: 0.6,
+					ekuboLiquidityWeight: 0.5,
 				},
 			},
 			{
@@ -156,8 +143,7 @@ export const POINTS_CONFIG: SeasonConfig[] = [
 				formula: {
 					borrowWeight: 0.7,
 					stabilityPoolWeight: 0.2,
-					usduLiquidityWeight: 0.4,
-					usdcLiquidityWeight: 0.6,
+					ekuboLiquidityWeight: 0.5,
 				},
 			},
 		],
