@@ -1,5 +1,6 @@
 import { calculateWeeklyPoints } from "./calculate-weekly-points";
 import { exportPointsSnapshot } from "./export-points-snapshot";
+import { generateWeeklyRewards } from "./generate-weekly-rewards";
 
 async function runWeeklyPoints(env: Env, referenceDate?: Date, force = false) {
 	try {
@@ -45,13 +46,21 @@ export default {
 		return new Response("Points worker ready", { status: 200 });
 	},
 
-		async scheduled(event, env): Promise<void> {
-			if (event.cron === "0 18 * * FRI") {
-				const referenceDate = event.scheduledTime
-					? new Date(event.scheduledTime)
-					: undefined;
-				await exportPointsSnapshot(env, { referenceDate });
-				return;
+	async scheduled(event, env): Promise<void> {
+		if (event.cron === "0 18 * * FRI") {
+			const referenceDate = event.scheduledTime
+				? new Date(event.scheduledTime)
+				: undefined;
+			await exportPointsSnapshot(env, { referenceDate });
+			return;
+		}
+
+		if (event.cron === "0 13 * * THU") {
+			const referenceDate = event.scheduledTime
+				? new Date(event.scheduledTime)
+				: undefined;
+			await generateWeeklyRewards(env, { referenceDate });
+			return;
 		}
 
 		await runWeeklyPoints(env);

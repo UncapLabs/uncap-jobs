@@ -62,7 +62,8 @@
 		"triggers": {
 			"crons": [
 				"0 18 * * FRI",
-				"0 10 * * FRI"
+				"0 10 * * FRI",
+				"0 13 * * THU"
 			]
 		},
 	"env": {}
