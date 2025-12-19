@@ -148,6 +148,133 @@ export const POINTS_CONFIG: SeasonConfig[] = [
 			},
 		],
 	},
+	{
+		seasonNumber: 2,
+		name: 'Season 2',
+		startDate: '2026-01-09',
+		endDate: '2026-04-10',
+		seasonTotalPoints: 1_890_000,
+		weightTotal: 18.817154,
+		weeks: [
+			{
+				start: '2026-01-09T06:00:00Z',
+				endExclusive: '2026-01-16T06:00:00Z',
+				formula: {
+					borrowWeight: 0.7,
+					stabilityPoolWeight: 0.2,
+					ekuboLiquidityWeight: 0.5,
+				},
+			},
+			{
+				start: '2026-01-16T06:00:00Z',
+				endExclusive: '2026-01-23T06:00:00Z',
+				formula: {
+					borrowWeight: 0.7,
+					stabilityPoolWeight: 0.2,
+					ekuboLiquidityWeight: 0.5,
+				},
+			},
+			{
+				start: '2026-01-23T06:00:00Z',
+				endExclusive: '2026-01-30T06:00:00Z',
+				formula: {
+					borrowWeight: 0.7,
+					stabilityPoolWeight: 0.2,
+					ekuboLiquidityWeight: 0.5,
+				},
+			},
+			{
+				start: '2026-01-30T06:00:00Z',
+				endExclusive: '2026-02-06T06:00:00Z',
+				formula: {
+					borrowWeight: 0.7,
+					stabilityPoolWeight: 0.2,
+					ekuboLiquidityWeight: 0.5,
+				},
+			},
+			{
+				start: '2026-02-06T06:00:00Z',
+				endExclusive: '2026-02-13T06:00:00Z',
+				formula: {
+					borrowWeight: 0.7,
+					stabilityPoolWeight: 0.2,
+					ekuboLiquidityWeight: 0.5,
+				},
+			},
+			{
+				start: '2026-02-13T06:00:00Z',
+				endExclusive: '2026-02-20T06:00:00Z',
+				formula: {
+					borrowWeight: 0.7,
+					stabilityPoolWeight: 0.2,
+					ekuboLiquidityWeight: 0.5,
+				},
+			},
+			{
+				start: '2026-02-20T06:00:00Z',
+				endExclusive: '2026-02-27T06:00:00Z',
+				formula: {
+					borrowWeight: 0.7,
+					stabilityPoolWeight: 0.2,
+					ekuboLiquidityWeight: 0.5,
+				},
+			},
+			{
+				start: '2026-02-27T06:00:00Z',
+				endExclusive: '2026-03-06T06:00:00Z',
+				formula: {
+					borrowWeight: 0.7,
+					stabilityPoolWeight: 0.2,
+					ekuboLiquidityWeight: 0.5,
+				},
+			},
+			{
+				start: '2026-03-06T06:00:00Z',
+				endExclusive: '2026-03-13T06:00:00Z',
+				formula: {
+					borrowWeight: 0.7,
+					stabilityPoolWeight: 0.2,
+					ekuboLiquidityWeight: 0.5,
+				},
+			},
+			{
+				start: '2026-03-13T06:00:00Z',
+				endExclusive: '2026-03-20T06:00:00Z',
+				formula: {
+					borrowWeight: 0.7,
+					stabilityPoolWeight: 0.2,
+					ekuboLiquidityWeight: 0.5,
+				},
+			},
+			{
+				start: '2026-03-20T06:00:00Z',
+				endExclusive: '2026-03-27T06:00:00Z',
+				formula: {
+					borrowWeight: 0.7,
+					stabilityPoolWeight: 0.2,
+					ekuboLiquidityWeight: 0.5,
+				},
+			},
+			{
+				start: '2026-03-27T06:00:00Z',
+				endExclusive: '2026-04-03T06:00:00Z',
+				formula: {
+					borrowWeight: 0.7,
+					stabilityPoolWeight: 0.2,
+					ekuboLiquidityWeight: 0.5,
+				},
+			},
+			{
+				start: '2026-04-03T06:00:00Z',
+				endExclusive: '2026-04-10T06:00:00Z',
+				formula: {
+					borrowWeight: 0.7,
+					stabilityPoolWeight: 0.2,
+					ekuboLiquidityWeight: 0.5,
+				},
+			},
+		],
+	},
 ];
 
 export const BLACKLISTED_ADDRESSES = new Set<string>([

@@ -40,6 +40,25 @@ export default {
 			return new Response(JSON.stringify({ status: 'scheduled' }), { status: 202, headers: { 'content-type': 'application/json' } });
 		}
 
+		if (url.pathname === '/admin/generate-rewards' && request.method === 'POST') {
+			const referenceParam = url.searchParams.get('reference');
+			let referenceDate: Date | undefined;
+
+			if (referenceParam) {
+				const parsed = new Date(referenceParam);
+				if (Number.isNaN(parsed.getTime())) {
+					return new Response(JSON.stringify({ error: 'Invalid reference date' }), {
+						status: 400,
+						headers: { 'content-type': 'application/json' },
+					});
+				}
+				referenceDate = parsed;
+			}
+
+			ctx.waitUntil(generateWeeklyRewards(env, { referenceDate }));
+			return new Response(JSON.stringify({ status: 'scheduled' }), { status: 202, headers: { 'content-type': 'application/json' } });
+		}
+
 		return new Response('Points worker ready', { status: 200 });
 	},
 
