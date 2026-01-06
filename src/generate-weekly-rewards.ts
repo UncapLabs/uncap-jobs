@@ -1,23 +1,62 @@
 /**
  * Job to generate weekly STRK rewards and upload to R2
- * Runs weekly on Thursday at 1 PM UTC
+ * Runs weekly on Thursday at 4 PM UTC
  * Processes data for the previous week (Thursday-Wednesday)
+ *
+ * Data sources:
+ * - SNF API: Pool-level daily allocations for Uncap protocol
+ * - Dune Query 6474138: Per-user daily positions
  */
 
-interface AggregatedItem {
+// SNF API response types
+interface SNFLendingItem {
 	date: string;
 	protocol: string;
-	user_address: string;
-	row_count: number;
-	allocated_tokens: number | null;
+	market_address: string;
+	market_name: string;
+	asset_symbol: string;
+	total_supply_tokens: string;
+	total_supply_usd: string;
+	total_borrow_tokens: string;
+	total_borrow_usd: string;
+	incentive_usd: string;
+	allocated_tokens: string;
+	effective_apr: string;
 }
 
-interface AggregatedResponse {
-	items: AggregatedItem[];
-	total: number;
-	page: number;
-	size: number;
-	pages: number;
+interface SNFBorrowingItem {
+	date: string;
+	protocol: string;
+	market_address: string;
+	market_name: string;
+	collateral_symbol: string | null;
+	debt_asset_symbol: string;
+	debt_asset: string;
+	total_borrow_tokens: string;
+	total_borrow_usd: string;
+	total_supply_usd: string;
+	interest_usd_daily: string;
+	incentive_usd: string;
+	allocated_tokens: string;
+	effective_apr: string;
+}
+
+interface SNFResponse<T> {
+	items: T[];
+}
+
+// Dune query response types
+interface DuneUserPosition {
+	user: string;
+	date: string;
+	total_supplied_usd: number;
+	interest_usd_daily: number;
+}
+
+interface DuneResult<T> {
+	result?: {
+		rows?: T[];
+	};
 }
 
 interface RewardAllocation {
@@ -25,12 +64,23 @@ interface RewardAllocation {
 	amount: string; // 18 decimal format (wei)
 }
 
-const API_BASE_URL = "https://www.data-openblocklabs.com";
+// Pool daily data from SNF (allocations only - totals come from Dune)
+interface PoolDailyData {
+	supplyAllocation: number;
+	borrowAllocation: number;
+}
+
+const SNF_LENDING_URL = "https://5xyjxn0qoe.execute-api.eu-west-1.amazonaws.com/prod/mm-lending";
+const SNF_BORROWING_URL = "https://5xyjxn0qoe.execute-api.eu-west-1.amazonaws.com/prod/mm-borrowing";
 const PROTOCOL = "Uncap";
-const PAGE_SIZE = 1000;
 
 // Week 1 starts on Thursday Nov 13, 2025
 const WEEK_1_START = new Date("2025-11-13T00:00:00Z");
+
+type DuneBindings = {
+	DUNE_API_KEY?: string;
+	DUNE_QUERY_STRK_REWARDS_ID?: string;
+};
 
 /**
  * Calculate which week number we're currently in
@@ -77,87 +127,181 @@ function toWei(amount: number): string {
 }
 
 /**
- * Fetch all pages from the aggregated API endpoint
+ * Fetch SNF data (both lending and borrowing)
+ * Returns pool-level allocations for each day (totals come from Dune)
  */
-async function fetchAllAllocations(): Promise<AggregatedItem[]> {
-	const allItems: AggregatedItem[] = [];
-	let currentPage = 1;
-	let totalPages = 1;
-
-	console.log("[weekly-rewards] Fetching allocations from OBL API...");
-
-	while (currentPage <= totalPages) {
-		const url = `${API_BASE_URL}/starknet/lending-incentives/aggregated/user-protocol?page=${currentPage}&size=${PAGE_SIZE}`;
-
-		console.log(`[weekly-rewards] Fetching page ${currentPage}/${totalPages}...`);
-
-		const response = await fetch(url);
-		if (!response.ok) {
-			throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-		}
-
-		const data: AggregatedResponse = await response.json();
-
-		if (currentPage === 1) {
-			totalPages = data.pages;
-			console.log(`[weekly-rewards] Total pages: ${totalPages}`);
-		}
-
-		const uncapItems = data.items.filter((item) => item.protocol === PROTOCOL);
-		allItems.push(...uncapItems);
-
-		currentPage++;
-	}
-
-	console.log(`[weekly-rewards] Fetched ${allItems.length} Uncap allocation entries`);
-	return allItems;
-}
-
-/**
- * Filter allocations by date range
- */
-function filterByDateRange(
-	items: AggregatedItem[],
+async function fetchSNFPoolData(
 	startDate: string,
 	endDate: string,
-): AggregatedItem[] {
-	const filtered = items.filter((item) => {
-		return item.date >= startDate && item.date <= endDate;
-	});
+): Promise<Map<string, PoolDailyData>> {
+	console.log("[weekly-rewards] Fetching SNF pool data...");
 
-	console.log(`[weekly-rewards] Filtered to date range: ${startDate} to ${endDate}`);
-	console.log(`[weekly-rewards] ${filtered.length} entries in date range`);
+	const [lendingRes, borrowRes] = await Promise.all([fetch(SNF_LENDING_URL), fetch(SNF_BORROWING_URL)]);
 
-	return filtered;
+	if (!lendingRes.ok) {
+		throw new Error(`SNF lending API failed: ${lendingRes.status} ${lendingRes.statusText}`);
+	}
+	if (!borrowRes.ok) {
+		throw new Error(`SNF borrowing API failed: ${borrowRes.status} ${borrowRes.statusText}`);
+	}
+
+	const lendingData: SNFResponse<SNFLendingItem> = await lendingRes.json();
+	const borrowData: SNFResponse<SNFBorrowingItem> = await borrowRes.json();
+
+	// Build daily data map (allocations only)
+	const poolData = new Map<string, PoolDailyData>();
+
+	// Process lending data
+	for (const item of lendingData.items) {
+		if (item.protocol !== PROTOCOL) continue;
+		if (item.date < startDate || item.date > endDate) continue;
+
+		const existing = poolData.get(item.date) || {
+			supplyAllocation: 0,
+			borrowAllocation: 0,
+		};
+		existing.supplyAllocation += parseFloat(item.allocated_tokens);
+		poolData.set(item.date, existing);
+	}
+
+	// Process borrowing data
+	for (const item of borrowData.items) {
+		if (item.protocol !== PROTOCOL) continue;
+		if (item.date < startDate || item.date > endDate) continue;
+
+		const existing = poolData.get(item.date) || {
+			supplyAllocation: 0,
+			borrowAllocation: 0,
+		};
+		existing.borrowAllocation += parseFloat(item.allocated_tokens);
+		poolData.set(item.date, existing);
+	}
+
+	console.log(`[weekly-rewards] SNF pool data: ${poolData.size} days`);
+	return poolData;
 }
 
 /**
- * Aggregate allocations by user address
+ * Fetch per-user positions from Dune
  */
-function aggregateByUser(items: AggregatedItem[]): Map<string, number> {
-	const userAllocations = new Map<string, number>();
+async function fetchUserPositions(
+	queryId: string,
+	apiKey: string,
+	startDate: string,
+	endDate: string,
+): Promise<DuneUserPosition[]> {
+	console.log("[weekly-rewards] Fetching user positions from Dune...");
 
-	for (const item of items) {
-		const { user_address, allocated_tokens } = item;
+	const url = new URL(`https://api.dune.com/api/v1/query/${queryId}/results`);
+	url.searchParams.set("limit", "5000");
 
-		if (allocated_tokens === null) continue;
+	const response = await fetch(url.toString(), {
+		headers: {
+			"X-Dune-API-Key": apiKey,
+			Accept: "application/json",
+		},
+	});
 
-		const currentTotal = userAllocations.get(user_address) || 0;
-		userAllocations.set(user_address, currentTotal + allocated_tokens);
+	if (!response.ok) {
+		const body = await response.text();
+		throw new Error(`Dune API failed: ${response.status} ${response.statusText} – ${body}`);
 	}
 
-	console.log(`[weekly-rewards] Aggregated to ${userAllocations.size} unique users`);
-	return userAllocations;
+	const data: DuneResult<DuneUserPosition> = await response.json();
+	const allRows = data.result?.rows ?? [];
+
+	// Filter by date range (client-side)
+	const filteredRows = allRows.filter((row) => row.date >= startDate && row.date <= endDate);
+
+	console.log(
+		`[weekly-rewards] Dune: fetched ${allRows.length} total rows, ${filteredRows.length} in date range`,
+	);
+	return filteredRows;
+}
+
+/**
+ * Calculate per-user rewards based on proportional allocation
+ * Uses Dune-summed totals as denominators (matching OBL methodology)
+ */
+function calculateUserRewards(
+	poolData: Map<string, PoolDailyData>,
+	userPositions: DuneUserPosition[],
+): Map<string, number> {
+	// Group user positions by date
+	const positionsByDate = new Map<string, DuneUserPosition[]>();
+	for (const pos of userPositions) {
+		const existing = positionsByDate.get(pos.date) || [];
+		existing.push(pos);
+		positionsByDate.set(pos.date, existing);
+	}
+
+	// Compute daily totals from Dune positions (used as denominators)
+	const dailyTotals = new Map<string, { totalSupplyUsd: number; totalInterestUsd: number }>();
+	for (const [date, positions] of positionsByDate) {
+		let totalSupplyUsd = 0;
+		let totalInterestUsd = 0;
+		for (const pos of positions) {
+			totalSupplyUsd += Math.max(pos.total_supplied_usd || 0, 0);
+			totalInterestUsd += Math.max(pos.interest_usd_daily || 0, 0);
+		}
+		dailyTotals.set(date, { totalSupplyUsd, totalInterestUsd });
+	}
+
+	// Track total rewards per user
+	const userRewards = new Map<string, number>();
+
+	// Process each day
+	for (const [date, pool] of poolData) {
+		const positions = positionsByDate.get(date) || [];
+		const totals = dailyTotals.get(date);
+		if (positions.length === 0 || !totals) {
+			console.log(`[weekly-rewards] No user positions for ${date}, skipping`);
+			continue;
+		}
+
+		console.log(
+			`[weekly-rewards] ${date}: ${positions.length} users, supply_alloc=${pool.supplyAllocation.toFixed(2)}, borrow_alloc=${pool.borrowAllocation.toFixed(2)}, total_supply=$${totals.totalSupplyUsd.toFixed(2)}, total_interest=$${totals.totalInterestUsd.toFixed(2)}`,
+		);
+
+		// Calculate each user's share for this day using Dune-summed totals
+		for (const pos of positions) {
+			const userSupplyUsd = Math.max(pos.total_supplied_usd || 0, 0);
+			const userInterestUsd = Math.max(pos.interest_usd_daily || 0, 0);
+
+			let reward = 0;
+
+			// Supply reward: user_share = user_supply / total_supply
+			if (pool.supplyAllocation > 0 && totals.totalSupplyUsd > 0 && userSupplyUsd > 0) {
+				const supplyShare = userSupplyUsd / totals.totalSupplyUsd;
+				reward += pool.supplyAllocation * supplyShare;
+			}
+
+			// Borrow reward: user_share = user_interest / total_interest
+			if (pool.borrowAllocation > 0 && totals.totalInterestUsd > 0 && userInterestUsd > 0) {
+				const borrowShare = userInterestUsd / totals.totalInterestUsd;
+				reward += pool.borrowAllocation * borrowShare;
+			}
+
+			if (reward > 0) {
+				const address = pos.user.toLowerCase();
+				const current = userRewards.get(address) || 0;
+				userRewards.set(address, current + reward);
+			}
+		}
+	}
+
+	console.log(`[weekly-rewards] Calculated rewards for ${userRewards.size} unique users`);
+	return userRewards;
 }
 
 /**
  * Generate reward allocation JSON
  */
-function generateRewardJSON(userAllocations: Map<string, number>): RewardAllocation[] {
+function generateRewardJSON(userRewards: Map<string, number>): RewardAllocation[] {
 	const rewards: RewardAllocation[] = [];
 	let totalSTRK = 0;
 
-	for (const [address, amount] of userAllocations.entries()) {
+	for (const [address, amount] of userRewards.entries()) {
 		if (amount <= 0) continue;
 
 		rewards.push({
@@ -195,6 +339,17 @@ export async function generateWeeklyRewards(
 	options: GenerateWeeklyRewardsOptions = {},
 ): Promise<void> {
 	try {
+		const duneEnv = env as Env & DuneBindings;
+		const apiKey = duneEnv.DUNE_API_KEY;
+		const queryId = duneEnv.DUNE_QUERY_STRK_REWARDS_ID;
+
+		if (!apiKey) {
+			throw new Error("Missing DUNE_API_KEY binding");
+		}
+		if (!queryId) {
+			throw new Error("Missing DUNE_QUERY_STRK_REWARDS_ID binding");
+		}
+
 		const now = options.referenceDate || new Date();
 		const currentWeek = getCurrentWeekNumber(now);
 		const previousWeek = currentWeek - 1;
@@ -210,17 +365,22 @@ export async function generateWeeklyRewards(
 		console.log(`[weekly-rewards] Week ${previousWeek}: ${startDate} to ${endDate}`);
 		console.log(`[weekly-rewards] Generated at: ${now.toISOString()}`);
 
-		// Fetch all allocations
-		const allItems = await fetchAllAllocations();
+		// Fetch data from all sources in parallel
+		const [poolData, userPositions] = await Promise.all([
+			fetchSNFPoolData(startDate, endDate),
+			fetchUserPositions(queryId, apiKey, startDate, endDate),
+		]);
 
-		// Filter by date range
-		const filteredItems = filterByDateRange(allItems, startDate, endDate);
-
-		// Aggregate by user
-		const userAllocations = aggregateByUser(filteredItems);
+		// Calculate per-user rewards using SNF allocations and Dune-summed totals
+		const userRewards = calculateUserRewards(poolData, userPositions);
 
 		// Generate reward JSON
-		const rewards = generateRewardJSON(userAllocations);
+		const rewards = generateRewardJSON(userRewards);
+
+		if (rewards.length === 0) {
+			console.log("[weekly-rewards] No rewards to upload");
+			return;
+		}
 
 		// Upload to R2
 		const runLabel = formatTimestampForKey(now);
