@@ -1,0 +1,234 @@
+[
+  {
+    "type": "impl",
+    "name": "IRedemptionManagerImpl",
+    "interface_name": "usdu::branch::trove::interfaces::IRedemptionManager::IRedemptionManager"
+  },
+  {
+    "type": "struct",
+    "name": "core::integer::u256",
+    "members": [
+      {
+        "name": "low",
+        "type": "core::integer::u128"
+      },
+      {
+        "name": "high",
+        "type": "core::integer::u128"
+      }
+    ]
+  },
+  {
+    "type": "struct",
+    "name": "core::array::Span::<core::integer::u256>",
+    "members": [
+      {
+        "name": "snapshot",
+        "type": "@core::array::Array::<core::integer::u256>"
+      }
+    ]
+  },
+  {
+    "type": "interface",
+    "name": "usdu::branch::trove::interfaces::IRedemptionManager::IRedemptionManager",
+    "items": [
+      {
+        "type": "function",
+        "name": "initializer",
+        "inputs": [
+          {
+            "name": "addresses_registry",
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "redeem_collateral",
+        "inputs": [
+          {
+            "name": "redeemer",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          {
+            "name": "redeem_amount",
+            "type": "core::integer::u256"
+          },
+          {
+            "name": "price",
+            "type": "core::integer::u256"
+          },
+          {
+            "name": "redemption_rate",
+            "type": "core::integer::u256"
+          },
+          {
+            "name": "max_iterations",
+            "type": "core::integer::u256"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "urgent_redemption",
+        "inputs": [
+          {
+            "name": "usdu_amount",
+            "type": "core::integer::u256"
+          },
+          {
+            "name": "trove_ids",
+            "type": "core::array::Span::<core::integer::u256>"
+          },
+          {
+            "name": "min_collateral",
+            "type": "core::integer::u256"
+          }
+        ],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "get_addresses_registry",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "state_mutability": "view"
+      }
+    ]
+  },
+  {
+    "type": "impl",
+    "name": "UpgradeableBaseImpl",
+    "interface_name": "usdu::components::interfaces::IUpgradeableBase::IUpgradeableBase"
+  },
+  {
+    "type": "enum",
+    "name": "core::bool",
+    "variants": [
+      {
+        "name": "False",
+        "type": "()"
+      },
+      {
+        "name": "True",
+        "type": "()"
+      }
+    ]
+  },
+  {
+    "type": "interface",
+    "name": "usdu::components::interfaces::IUpgradeableBase::IUpgradeableBase",
+    "items": [
+      {
+        "type": "function",
+        "name": "upgrade",
+        "inputs": [
+          {
+            "name": "new_class_hash",
+            "type": "core::starknet::class_hash::ClassHash"
+          }
+        ],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "initialized",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::bool"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "owner",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "state_mutability": "view"
+      }
+    ]
+  },
+  {
+    "type": "constructor",
+    "name": "constructor",
+    "inputs": [
+      {
+        "name": "deployer",
+        "type": "core::starknet::contract_address::ContractAddress"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "usdu::components::UpgradeableBase::UpgradeableBaseComponent::CollateralRegistryAddressChanged",
+    "kind": "struct",
+    "members": [
+      {
+        "name": "new_collateral_registry",
+        "type": "core::starknet::contract_address::ContractAddress",
+        "kind": "data"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "usdu::components::UpgradeableBase::UpgradeableBaseComponent::Upgraded",
+    "kind": "struct",
+    "members": [
+      {
+        "name": "class_hash",
+        "type": "core::starknet::class_hash::ClassHash",
+        "kind": "data"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "usdu::components::UpgradeableBase::UpgradeableBaseComponent::Event",
+    "kind": "enum",
+    "variants": [
+      {
+        "name": "CollateralRegistryAddressChanged",
+        "type": "usdu::components::UpgradeableBase::UpgradeableBaseComponent::CollateralRegistryAddressChanged",
+        "kind": "nested"
+      },
+      {
+        "name": "Upgraded",
+        "type": "usdu::components::UpgradeableBase::UpgradeableBaseComponent::Upgraded",
+        "kind": "nested"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "usdu::branch::trove::RedemptionManager::RedemptionManager::Event",
+    "kind": "enum",
+    "variants": [
+      {
+        "name": "UpgradeableBaseEvent",
+        "type": "usdu::components::UpgradeableBase::UpgradeableBaseComponent::Event",
+        "kind": "flat"
+      }
+    ]
+  }
+]

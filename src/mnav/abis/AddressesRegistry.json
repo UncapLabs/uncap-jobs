@@ -1,0 +1,737 @@
+[
+  {
+    "type": "impl",
+    "name": "AddressesRegistryImpl",
+    "interface_name": "usdu::branch::interfaces::IAddressesRegistry::IAddressesRegistry"
+  },
+  {
+    "type": "struct",
+    "name": "core::integer::u256",
+    "members": [
+      {
+        "name": "low",
+        "type": "core::integer::u128"
+      },
+      {
+        "name": "high",
+        "type": "core::integer::u128"
+      }
+    ]
+  },
+  {
+    "type": "enum",
+    "name": "core::option::Option::<core::integer::u256>",
+    "variants": [
+      {
+        "name": "Some",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "None",
+        "type": "()"
+      }
+    ]
+  },
+  {
+    "type": "interface",
+    "name": "usdu::branch::interfaces::IAddressesRegistry::IAddressesRegistry",
+    "items": [
+      {
+        "type": "function",
+        "name": "decrease_mcr",
+        "inputs": [
+          {
+            "name": "new_mcr",
+            "type": "core::integer::u256"
+          }
+        ],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "initializer",
+        "inputs": [
+          {
+            "name": "active_pool",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          {
+            "name": "default_pool",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          {
+            "name": "price_feed",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          {
+            "name": "hint_helpers",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          {
+            "name": "multi_trove_getter",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          {
+            "name": "metadata_nft",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          {
+            "name": "strk",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          {
+            "name": "borrower_operations",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          {
+            "name": "trove_manager",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          {
+            "name": "trove_nft",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          {
+            "name": "gas_pool",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          {
+            "name": "coll_surplus_pool",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          {
+            "name": "sorted_troves",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          {
+            "name": "collateral_registry",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          {
+            "name": "usdu",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          {
+            "name": "interest_router",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          {
+            "name": "stability_pool",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          {
+            "name": "coll_token",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          {
+            "name": "liquidation_manager",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          {
+            "name": "redemption_manager",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          {
+            "name": "batch_manager",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          {
+            "name": "trove_manager_events_emitter",
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "set_cap",
+        "inputs": [
+          {
+            "name": "new_cap",
+            "type": "core::integer::u256"
+          }
+        ],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "set_price_feed",
+        "inputs": [
+          {
+            "name": "new_price_feed",
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "set_sponsor",
+        "inputs": [
+          {
+            "name": "new_sponsor",
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "get_active_pool",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_ccr",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_batch_manager",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_borrower_operations",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_cap",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::option::Option::<core::integer::u256>"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_bcr",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_coll_surplus_pool",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_coll_token",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_collateral_registry",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_default_pool",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_gas_pool",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_hint_helpers",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_interest_router",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_liquidation_manager",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_liquidation_penalty_redistribution",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_liquidation_penalty_sp",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_mcr",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_metadata_nft",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_multi_trove_getter",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_price_feed",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_redemption_manager",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_scr",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_sorted_troves",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_sponsor",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_stability_pool",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_strk",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_trove_manager",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_trove_manager_events_emitter",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_trove_nft",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_usdu_token",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "state_mutability": "view"
+      }
+    ]
+  },
+  {
+    "type": "impl",
+    "name": "UpgradeableBaseImpl",
+    "interface_name": "usdu::components::interfaces::IUpgradeableBase::IUpgradeableBase"
+  },
+  {
+    "type": "enum",
+    "name": "core::bool",
+    "variants": [
+      {
+        "name": "False",
+        "type": "()"
+      },
+      {
+        "name": "True",
+        "type": "()"
+      }
+    ]
+  },
+  {
+    "type": "interface",
+    "name": "usdu::components::interfaces::IUpgradeableBase::IUpgradeableBase",
+    "items": [
+      {
+        "type": "function",
+        "name": "upgrade",
+        "inputs": [
+          {
+            "name": "new_class_hash",
+            "type": "core::starknet::class_hash::ClassHash"
+          }
+        ],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "initialized",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::bool"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "owner",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "state_mutability": "view"
+      }
+    ]
+  },
+  {
+    "type": "constructor",
+    "name": "constructor",
+    "inputs": [
+      {
+        "name": "ccr",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "mcr",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "bcr",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "scr",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "cap",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "liquidation_penalty_sp",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "liquidation_penalty_redistribution",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "sponsor",
+        "type": "core::starknet::contract_address::ContractAddress"
+      },
+      {
+        "name": "deployer",
+        "type": "core::starknet::contract_address::ContractAddress"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "usdu::branch::AddressesRegistry::AddressesRegistry::CapSet",
+    "kind": "struct",
+    "members": [
+      {
+        "name": "new_cap",
+        "type": "core::option::Option::<core::integer::u256>",
+        "kind": "data"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "usdu::branch::AddressesRegistry::AddressesRegistry::MCRDecreased",
+    "kind": "struct",
+    "members": [
+      {
+        "name": "new_mcr",
+        "type": "core::integer::u256",
+        "kind": "data"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "usdu::branch::AddressesRegistry::AddressesRegistry::PriceFeedSet",
+    "kind": "struct",
+    "members": [
+      {
+        "name": "new_price_feed",
+        "type": "core::starknet::contract_address::ContractAddress",
+        "kind": "data"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "usdu::branch::AddressesRegistry::AddressesRegistry::SponsorSet",
+    "kind": "struct",
+    "members": [
+      {
+        "name": "new_sponsor",
+        "type": "core::starknet::contract_address::ContractAddress",
+        "kind": "data"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "usdu::components::UpgradeableBase::UpgradeableBaseComponent::CollateralRegistryAddressChanged",
+    "kind": "struct",
+    "members": [
+      {
+        "name": "new_collateral_registry",
+        "type": "core::starknet::contract_address::ContractAddress",
+        "kind": "data"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "usdu::components::UpgradeableBase::UpgradeableBaseComponent::Upgraded",
+    "kind": "struct",
+    "members": [
+      {
+        "name": "class_hash",
+        "type": "core::starknet::class_hash::ClassHash",
+        "kind": "data"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "usdu::components::UpgradeableBase::UpgradeableBaseComponent::Event",
+    "kind": "enum",
+    "variants": [
+      {
+        "name": "CollateralRegistryAddressChanged",
+        "type": "usdu::components::UpgradeableBase::UpgradeableBaseComponent::CollateralRegistryAddressChanged",
+        "kind": "nested"
+      },
+      {
+        "name": "Upgraded",
+        "type": "usdu::components::UpgradeableBase::UpgradeableBaseComponent::Upgraded",
+        "kind": "nested"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "usdu::branch::AddressesRegistry::AddressesRegistry::Event",
+    "kind": "enum",
+    "variants": [
+      {
+        "name": "CapSet",
+        "type": "usdu::branch::AddressesRegistry::AddressesRegistry::CapSet",
+        "kind": "nested"
+      },
+      {
+        "name": "MCRDecreased",
+        "type": "usdu::branch::AddressesRegistry::AddressesRegistry::MCRDecreased",
+        "kind": "nested"
+      },
+      {
+        "name": "PriceFeedSet",
+        "type": "usdu::branch::AddressesRegistry::AddressesRegistry::PriceFeedSet",
+        "kind": "nested"
+      },
+      {
+        "name": "SponsorSet",
+        "type": "usdu::branch::AddressesRegistry::AddressesRegistry::SponsorSet",
+        "kind": "nested"
+      },
+      {
+        "name": "UpgradeableBaseEvent",
+        "type": "usdu::components::UpgradeableBase::UpgradeableBaseComponent::Event",
+        "kind": "flat"
+      }
+    ]
+  }
+]

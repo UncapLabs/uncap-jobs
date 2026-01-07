@@ -1,6 +1,7 @@
 import { calculateWeeklyPoints } from './calculate-weekly-points';
 import { exportPointsSnapshot } from './export-points-snapshot';
 import { generateWeeklyRewards } from './generate-weekly-rewards';
+import { calculateMnav } from './mnav/calculate-mnav';
 
 async function runWeeklyPoints(env: Env, referenceDate?: Date, force = false) {
 	try {
@@ -59,6 +60,11 @@ export default {
 			return new Response(JSON.stringify({ status: 'scheduled' }), { status: 202, headers: { 'content-type': 'application/json' } });
 		}
 
+		if (url.pathname === '/admin/calculate-mnav' && request.method === 'POST') {
+			ctx.waitUntil(calculateMnav(env));
+			return new Response(JSON.stringify({ status: 'scheduled' }), { status: 202, headers: { 'content-type': 'application/json' } });
+		}
+
 		return new Response('Points worker ready', { status: 200 });
 	},
 
@@ -72,6 +78,12 @@ export default {
 		if (event.cron === '0 16 * * THU') {
 			const referenceDate = event.scheduledTime ? new Date(event.scheduledTime) : undefined;
 			await generateWeeklyRewards(env, { referenceDate });
+			return;
+		}
+
+		// mNAV calculation - daily at 11 AM UTC
+		if (event.cron === '0 11 * * *') {
+			await calculateMnav(env);
 			return;
 		}
 

@@ -1,0 +1,120 @@
+[
+  {
+    "type": "impl",
+    "name": "IPriceFeedImpl",
+    "interface_name": "usdu::interfaces::IPriceFeed::IPriceFeed"
+  },
+  {
+    "type": "struct",
+    "name": "core::integer::u256",
+    "members": [
+      {
+        "name": "low",
+        "type": "core::integer::u128"
+      },
+      {
+        "name": "high",
+        "type": "core::integer::u128"
+      }
+    ]
+  },
+  {
+    "type": "enum",
+    "name": "core::bool",
+    "variants": [
+      {
+        "name": "False",
+        "type": "()"
+      },
+      {
+        "name": "True",
+        "type": "()"
+      }
+    ]
+  },
+  {
+    "type": "interface",
+    "name": "usdu::interfaces::IPriceFeed::IPriceFeed",
+    "items": [
+      {
+        "type": "function",
+        "name": "fetch_price",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "(core::integer::u256, core::bool)"
+          }
+        ],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "fetch_redemption_price",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "(core::integer::u256, core::bool)"
+          }
+        ],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "get_price",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      }
+    ]
+  },
+  {
+    "type": "constructor",
+    "name": "constructor",
+    "inputs": [
+      {
+        "name": "pragma_oracle_address",
+        "type": "core::starknet::contract_address::ContractAddress"
+      },
+      {
+        "name": "chainlink_btc_usd_address",
+        "type": "core::starknet::contract_address::ContractAddress"
+      },
+      {
+        "name": "chainlink_wbtc_usd_address",
+        "type": "core::starknet::contract_address::ContractAddress"
+      },
+      {
+        "name": "addresses_registry",
+        "type": "core::starknet::contract_address::ContractAddress"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "usdu::price_feeds::WBTCPriceFeed::WBTCPriceFeed::ShutDownFromOracleFailure",
+    "kind": "struct",
+    "members": [
+      {
+        "name": "oracle",
+        "type": "core::starknet::contract_address::ContractAddress",
+        "kind": "data"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "usdu::price_feeds::WBTCPriceFeed::WBTCPriceFeed::Event",
+    "kind": "enum",
+    "variants": [
+      {
+        "name": "ShutDownFromOracleFailure",
+        "type": "usdu::price_feeds::WBTCPriceFeed::WBTCPriceFeed::ShutDownFromOracleFailure",
+        "kind": "nested"
+      }
+    ]
+  }
+]

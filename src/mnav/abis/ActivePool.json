@@ -1,0 +1,521 @@
+[
+  {
+    "type": "impl",
+    "name": "IActivePoolImpl",
+    "interface_name": "usdu::branch::interfaces::IActivePool::IActivePool"
+  },
+  {
+    "type": "struct",
+    "name": "core::integer::u256",
+    "members": [
+      {
+        "name": "low",
+        "type": "core::integer::u128"
+      },
+      {
+        "name": "high",
+        "type": "core::integer::u128"
+      }
+    ]
+  },
+  {
+    "type": "enum",
+    "name": "core::bool",
+    "variants": [
+      {
+        "name": "False",
+        "type": "()"
+      },
+      {
+        "name": "True",
+        "type": "()"
+      }
+    ]
+  },
+  {
+    "type": "struct",
+    "name": "usdu::branch::trove::interfaces::ITroveManager::TroveChange",
+    "members": [
+      {
+        "name": "applied_redist_usdu_debt_gain",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "applied_redist_coll_gain",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "coll_increase",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "coll_decrease",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "debt_increase",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "debt_decrease",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "new_weighted_recorded_debt",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "old_weighted_recorded_debt",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "upfront_fee",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "batch_accrued_management_fee",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "new_weighted_recorded_batch_management_fee",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "old_weighted_recorded_batch_management_fee",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "sponsored",
+        "type": "core::bool"
+      }
+    ]
+  },
+  {
+    "type": "interface",
+    "name": "usdu::branch::interfaces::IActivePool::IActivePool",
+    "items": [
+      {
+        "type": "function",
+        "name": "account_for_received_coll",
+        "inputs": [
+          {
+            "name": "amount",
+            "type": "core::integer::u256"
+          }
+        ],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "initializer",
+        "inputs": [
+          {
+            "name": "addresses_registry",
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "mint_agg_interest",
+        "inputs": [],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "mint_agg_interest_and_account_for_trove_change",
+        "inputs": [
+          {
+            "name": "trove_change",
+            "type": "usdu::branch::trove::interfaces::ITroveManager::TroveChange"
+          },
+          {
+            "name": "batch_address",
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "mint_batch_management_fee_and_account_for_change",
+        "inputs": [
+          {
+            "name": "trove_change",
+            "type": "usdu::branch::trove::interfaces::ITroveManager::TroveChange"
+          },
+          {
+            "name": "batch_address",
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "receive_coll",
+        "inputs": [
+          {
+            "name": "amount",
+            "type": "core::integer::u256"
+          }
+        ],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "send_coll",
+        "inputs": [
+          {
+            "name": "account",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          {
+            "name": "amount",
+            "type": "core::integer::u256"
+          }
+        ],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "send_coll_to_default_pool",
+        "inputs": [
+          {
+            "name": "amount",
+            "type": "core::integer::u256"
+          }
+        ],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "set_shutdown_flag",
+        "inputs": [],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "calc_pending_agg_batch_management_fee",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "calc_pending_agg_interest",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "calc_pending_SP_yield",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_addresses_registry",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_agg_batch_management_fees",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_agg_recorded_debt",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_agg_weighted_batch_management_fee_sum",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_agg_weighted_debt_sum",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_coll_balance",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_last_agg_batch_management_fees_update_time",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u64"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_last_agg_update_time",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u64"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_new_approx_avg_interest_rate_from_trove_change",
+        "inputs": [
+          {
+            "name": "trove_change",
+            "type": "usdu::branch::trove::interfaces::ITroveManager::TroveChange"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_shutdown_time",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u64"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_usdu_debt",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "has_been_shutdown",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::bool"
+          }
+        ],
+        "state_mutability": "view"
+      }
+    ]
+  },
+  {
+    "type": "impl",
+    "name": "UpgradeableBaseImpl",
+    "interface_name": "usdu::components::interfaces::IUpgradeableBase::IUpgradeableBase"
+  },
+  {
+    "type": "interface",
+    "name": "usdu::components::interfaces::IUpgradeableBase::IUpgradeableBase",
+    "items": [
+      {
+        "type": "function",
+        "name": "upgrade",
+        "inputs": [
+          {
+            "name": "new_class_hash",
+            "type": "core::starknet::class_hash::ClassHash"
+          }
+        ],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "initialized",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::bool"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "owner",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "state_mutability": "view"
+      }
+    ]
+  },
+  {
+    "type": "constructor",
+    "name": "constructor",
+    "inputs": [
+      {
+        "name": "deployer",
+        "type": "core::starknet::contract_address::ContractAddress"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "usdu::branch::ActivePool::ActivePool::ActivePoolCollBalanceUpdated",
+    "kind": "struct",
+    "members": [
+      {
+        "name": "coll_balance",
+        "type": "core::integer::u256",
+        "kind": "data"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "usdu::branch::ActivePool::ActivePool::ActivePoolUSDUDebtUpdated",
+    "kind": "struct",
+    "members": [
+      {
+        "name": "recorded_debt_sum",
+        "type": "core::integer::u256",
+        "kind": "data"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "usdu::components::UpgradeableBase::UpgradeableBaseComponent::CollateralRegistryAddressChanged",
+    "kind": "struct",
+    "members": [
+      {
+        "name": "new_collateral_registry",
+        "type": "core::starknet::contract_address::ContractAddress",
+        "kind": "data"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "usdu::components::UpgradeableBase::UpgradeableBaseComponent::Upgraded",
+    "kind": "struct",
+    "members": [
+      {
+        "name": "class_hash",
+        "type": "core::starknet::class_hash::ClassHash",
+        "kind": "data"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "usdu::components::UpgradeableBase::UpgradeableBaseComponent::Event",
+    "kind": "enum",
+    "variants": [
+      {
+        "name": "CollateralRegistryAddressChanged",
+        "type": "usdu::components::UpgradeableBase::UpgradeableBaseComponent::CollateralRegistryAddressChanged",
+        "kind": "nested"
+      },
+      {
+        "name": "Upgraded",
+        "type": "usdu::components::UpgradeableBase::UpgradeableBaseComponent::Upgraded",
+        "kind": "nested"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "usdu::branch::ActivePool::ActivePool::Event",
+    "kind": "enum",
+    "variants": [
+      {
+        "name": "ActivePoolCollBalanceUpdated",
+        "type": "usdu::branch::ActivePool::ActivePool::ActivePoolCollBalanceUpdated",
+        "kind": "nested"
+      },
+      {
+        "name": "ActivePoolUSDUDebtUpdated",
+        "type": "usdu::branch::ActivePool::ActivePool::ActivePoolUSDUDebtUpdated",
+        "kind": "nested"
+      },
+      {
+        "name": "UpgradeableBaseEvent",
+        "type": "usdu::components::UpgradeableBase::UpgradeableBaseComponent::Event",
+        "kind": "flat"
+      }
+    ]
+  }
+]

@@ -1,0 +1,298 @@
+[
+  {
+    "type": "impl",
+    "name": "ILiquidationManagerImpl",
+    "interface_name": "usdu::branch::trove::interfaces::ILiquidationManager::ILiquidationManager"
+  },
+  {
+    "type": "struct",
+    "name": "core::integer::u256",
+    "members": [
+      {
+        "name": "low",
+        "type": "core::integer::u128"
+      },
+      {
+        "name": "high",
+        "type": "core::integer::u128"
+      }
+    ]
+  },
+  {
+    "type": "struct",
+    "name": "core::array::Span::<core::integer::u256>",
+    "members": [
+      {
+        "name": "snapshot",
+        "type": "@core::array::Array::<core::integer::u256>"
+      }
+    ]
+  },
+  {
+    "type": "enum",
+    "name": "core::bool",
+    "variants": [
+      {
+        "name": "False",
+        "type": "()"
+      },
+      {
+        "name": "True",
+        "type": "()"
+      }
+    ]
+  },
+  {
+    "type": "struct",
+    "name": "usdu::branch::trove::interfaces::ITroveManager::TroveChange",
+    "members": [
+      {
+        "name": "applied_redist_usdu_debt_gain",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "applied_redist_coll_gain",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "coll_increase",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "coll_decrease",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "debt_increase",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "debt_decrease",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "new_weighted_recorded_debt",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "old_weighted_recorded_debt",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "upfront_fee",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "batch_accrued_management_fee",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "new_weighted_recorded_batch_management_fee",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "old_weighted_recorded_batch_management_fee",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "sponsored",
+        "type": "core::bool"
+      }
+    ]
+  },
+  {
+    "type": "struct",
+    "name": "usdu::branch::trove::interfaces::ILiquidationManager::LiquidationValues",
+    "members": [
+      {
+        "name": "coll_gas_compensation",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "debt_to_offset",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "coll_to_send_to_SP",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "debt_to_redistribute",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "coll_to_redistribute",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "coll_surplus",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "strk_gas_compensation",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "old_weighted_recorded_debt",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "new_weighted_recorded_debt",
+        "type": "core::integer::u256"
+      }
+    ]
+  },
+  {
+    "type": "interface",
+    "name": "usdu::branch::trove::interfaces::ILiquidationManager::ILiquidationManager",
+    "items": [
+      {
+        "type": "function",
+        "name": "batch_liquidate_troves",
+        "inputs": [
+          {
+            "name": "trove_array",
+            "type": "core::array::Span::<core::integer::u256>"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "(usdu::branch::trove::interfaces::ITroveManager::TroveChange, usdu::branch::trove::interfaces::ILiquidationManager::LiquidationValues, core::integer::u256)"
+          }
+        ],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "initializer",
+        "inputs": [
+          {
+            "name": "addresses_registry",
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "get_addresses_registry",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "state_mutability": "view"
+      }
+    ]
+  },
+  {
+    "type": "impl",
+    "name": "UpgradeableBaseImpl",
+    "interface_name": "usdu::components::interfaces::IUpgradeableBase::IUpgradeableBase"
+  },
+  {
+    "type": "interface",
+    "name": "usdu::components::interfaces::IUpgradeableBase::IUpgradeableBase",
+    "items": [
+      {
+        "type": "function",
+        "name": "upgrade",
+        "inputs": [
+          {
+            "name": "new_class_hash",
+            "type": "core::starknet::class_hash::ClassHash"
+          }
+        ],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "initialized",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::bool"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "owner",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "state_mutability": "view"
+      }
+    ]
+  },
+  {
+    "type": "constructor",
+    "name": "constructor",
+    "inputs": [
+      {
+        "name": "deployer",
+        "type": "core::starknet::contract_address::ContractAddress"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "usdu::components::UpgradeableBase::UpgradeableBaseComponent::CollateralRegistryAddressChanged",
+    "kind": "struct",
+    "members": [
+      {
+        "name": "new_collateral_registry",
+        "type": "core::starknet::contract_address::ContractAddress",
+        "kind": "data"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "usdu::components::UpgradeableBase::UpgradeableBaseComponent::Upgraded",
+    "kind": "struct",
+    "members": [
+      {
+        "name": "class_hash",
+        "type": "core::starknet::class_hash::ClassHash",
+        "kind": "data"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "usdu::components::UpgradeableBase::UpgradeableBaseComponent::Event",
+    "kind": "enum",
+    "variants": [
+      {
+        "name": "CollateralRegistryAddressChanged",
+        "type": "usdu::components::UpgradeableBase::UpgradeableBaseComponent::CollateralRegistryAddressChanged",
+        "kind": "nested"
+      },
+      {
+        "name": "Upgraded",
+        "type": "usdu::components::UpgradeableBase::UpgradeableBaseComponent::Upgraded",
+        "kind": "nested"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "usdu::branch::trove::LiquidationManager::LiquidationManager::Event",
+    "kind": "enum",
+    "variants": [
+      {
+        "name": "UpgradeableBaseEvent",
+        "type": "usdu::components::UpgradeableBase::UpgradeableBaseComponent::Event",
+        "kind": "flat"
+      }
+    ]
+  }
+]
