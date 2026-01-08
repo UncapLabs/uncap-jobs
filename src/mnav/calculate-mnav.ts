@@ -2,6 +2,8 @@
  * mNAV Calculator
  *
  * Main orchestrator that fetches all positions and calculates the mNAV.
+ * Supports multiple Uncap branches (WWBTC, TBTC, SOLVBTC) with all BTC variants
+ * treated as 1:1 with WBTC.
  */
 
 import { fetchEthereumWbtcBalance } from './fetchers/ethereum-wbtc';
@@ -9,8 +11,17 @@ import { fetchStarknetWallet } from './fetchers/starknet-wallet';
 import { fetchUncapPositions } from './fetchers/uncap-positions';
 import { fetchPrices } from './prices/uncap-oracle';
 import { Big } from './utils';
-import { MNAV_CONFIG, DECIMALS } from './config';
-import type { MnavResult, Positions, Prices, SerializedPositions, SerializedPrices } from './types';
+import { MNAV_CONFIG, DECIMALS, type Network } from './config';
+import type {
+	MnavResult,
+	Positions,
+	Prices,
+	SerializedPositions,
+	SerializedPrices,
+	BranchPosition,
+	SerializedBranchPosition,
+	UncapPositions,
+} from './types';
 
 /**
  * Calculate mNAV from positions and prices.
@@ -22,12 +33,11 @@ import type { MnavResult, Positions, Prices, SerializedPositions, SerializedPric
  *        + starknet.wbtc (8 dec)
  *        + starknet.usdu (18 dec) / price (18 dec) * 10^8 -> 8 dec
  *        + starknet.usdc (6 dec) / price (18 dec) * 10^8 * 10^12 -> 8 dec
- *        + uncap.collateral (18 dec) / 10^10 -> 8 dec
- *        - uncap.debt (18 dec) / price (18 dec) * 10^8 -> 8 dec
- *        + sp.usdu (18 dec) / price (18 dec) * 10^8 -> 8 dec
- *        + sp.usduYieldGain (18 dec) / price (18 dec) * 10^8 -> 8 dec
- *        + sp.collateralGain (18 dec) / 10^10 -> 8 dec
- *        + sp.stashedColl (18 dec) / 10^10 -> 8 dec
+ *        + uncap.totalCollateral (18 dec) / 10^10 -> 8 dec
+ *        - uncap.totalDebt (18 dec) / price (18 dec) * 10^8 -> 8 dec
+ *        + uncap.totalSpUsdu (18 dec) / price (18 dec) * 10^8 -> 8 dec
+ *        + uncap.totalSpYieldGain (18 dec) / price (18 dec) * 10^8 -> 8 dec
+ *        + uncap.totalSpCollGain (18 dec) / 10^10 -> 8 dec (all BTC variants treated as 1:1)
  */
 function calculateMnavValue(positions: Positions, prices: Prices): { totalWbtc: Big; totalUsd: Big } {
 	const price = prices.wbtcUsd; // 18 decimals
@@ -47,21 +57,18 @@ function calculateMnavValue(positions: Positions, prices: Prices): { totalWbtc: 
 	// Starknet USDC wallet balance -> WBTC (6 dec * 10^12 = 18 dec, then / 18 dec * 10^8 = 8 dec)
 	const starknetUsdcWbtc = positions.starknet.usdc.times(scale6to18).div(price).times(scale0to8);
 
-	// Uncap collateral (18 dec -> 8 dec)
-	const uncapColl = positions.uncap.collateral.div(scale18to8);
+	// Uncap collateral (18 dec -> 8 dec) - all BTC variants treated as 1:1
+	const uncapColl = positions.uncap.totalCollateral.div(scale18to8);
 
 	// Uncap debt (18 dec USDU -> WBTC 8 dec)
-	// debt / price gives actual WBTC ratio (decimals cancel), then * 10^8 = 8 dec
-	const uncapDebtWbtc = positions.uncap.debt.div(price).times(scale0to8);
+	const uncapDebtWbtc = positions.uncap.totalDebt.div(price).times(scale0to8);
 
-	// Stability pool USDU -> WBTC (same conversion as debt)
-	const sp = positions.uncap.stabilityPool;
-	const spUsduWbtc = sp.usdu.div(price).times(scale0to8);
-	const spYieldWbtc = sp.usduYieldGain.div(price).times(scale0to8);
+	// Stability pool USDU -> WBTC
+	const spUsduWbtc = positions.uncap.totalSpUsdu.div(price).times(scale0to8);
+	const spYieldWbtc = positions.uncap.totalSpYieldGain.div(price).times(scale0to8);
 
-	// SP collateral gains (18 dec -> 8 dec)
-	const spCollGainWbtc = sp.collateralGain.div(scale18to8);
-	const spStashedWbtc = sp.stashedColl.div(scale18to8);
+	// SP collateral gains (18 dec -> 8 dec) - all BTC variants treated as 1:1
+	const spCollGainWbtc = positions.uncap.totalSpCollGain.div(scale18to8);
 
 	// Total mNAV in WBTC (8 decimals)
 	const totalWbtc = ethWbtc
@@ -72,20 +79,33 @@ function calculateMnavValue(positions: Positions, prices: Prices): { totalWbtc: 
 		.minus(uncapDebtWbtc)
 		.plus(spUsduWbtc)
 		.plus(spYieldWbtc)
-		.plus(spCollGainWbtc)
-		.plus(spStashedWbtc);
+		.plus(spCollGainWbtc);
 
 	// USD value: convert totalWbtc to actual WBTC amount, then multiply by USD price
-	// totalWbtc is 8 dec, price is 18 dec
-	// (totalWbtc / 10^8) * (price / 10^18) = totalWbtc * price / 10^26
 	const totalUsd = totalWbtc.times(price).div(Big(10).pow(DECIMALS.WBTC_ETH + DECIMALS.PRICE));
 
 	return { totalWbtc, totalUsd };
 }
 
 /**
+ * Serialize a branch position for JSON storage.
+ */
+function serializeBranchPosition(branch: BranchPosition): SerializedBranchPosition {
+	return {
+		branchName: branch.branchName,
+		collateral: branch.collateral.toFixed(0),
+		debt: branch.debt.toFixed(0),
+		stabilityPool: {
+			usdu: branch.stabilityPool.usdu.toFixed(0),
+			usduYieldGain: branch.stabilityPool.usduYieldGain.toFixed(0),
+			collateralGain: branch.stabilityPool.collateralGain.toFixed(0),
+			stashedColl: branch.stabilityPool.stashedColl.toFixed(0),
+		},
+	};
+}
+
+/**
  * Serialize positions for JSON storage.
- * Uses toFixed(0) to avoid scientific notation for large numbers.
  */
 function serializePositions(positions: Positions): SerializedPositions {
 	return {
@@ -96,13 +116,17 @@ function serializePositions(positions: Positions): SerializedPositions {
 			usdc: positions.starknet.usdc.toFixed(0),
 		},
 		uncap: {
-			collateral: positions.uncap.collateral.toFixed(0),
-			debt: positions.uncap.debt.toFixed(0),
-			stabilityPool: {
-				usdu: positions.uncap.stabilityPool.usdu.toFixed(0),
-				usduYieldGain: positions.uncap.stabilityPool.usduYieldGain.toFixed(0),
-				collateralGain: positions.uncap.stabilityPool.collateralGain.toFixed(0),
-				stashedColl: positions.uncap.stabilityPool.stashedColl.toFixed(0),
+			branches: {
+				WWBTC: serializeBranchPosition(positions.uncap.branches.WWBTC),
+				TBTC: serializeBranchPosition(positions.uncap.branches.TBTC),
+				SOLVBTC: serializeBranchPosition(positions.uncap.branches.SOLVBTC),
+			},
+			totals: {
+				collateral: positions.uncap.totalCollateral.toFixed(0),
+				debt: positions.uncap.totalDebt.toFixed(0),
+				spUsdu: positions.uncap.totalSpUsdu.toFixed(0),
+				spYieldGain: positions.uncap.totalSpYieldGain.toFixed(0),
+				spCollGain: positions.uncap.totalSpCollGain.toFixed(0),
 			},
 		},
 	};
@@ -112,11 +136,40 @@ function serializePositions(positions: Positions): SerializedPositions {
  * Serialize prices for JSON storage.
  */
 function serializePrices(prices: Prices): SerializedPrices {
-	// Convert from 18 decimals to human-readable USD price
 	const priceUsd = prices.wbtcUsd.div(Big(10).pow(DECIMALS.PRICE));
 	return {
 		wbtcUsd: priceUsd.toFixed(2),
 		wbtcUsdRaw: prices.wbtcUsd.toFixed(0),
+	};
+}
+
+/**
+ * Create empty Uncap positions for fallback.
+ */
+function createEmptyUncapPositions(): UncapPositions {
+	const emptyBranch = (name: string): BranchPosition => ({
+		branchName: name,
+		collateral: Big(0),
+		debt: Big(0),
+		stabilityPool: {
+			usdu: Big(0),
+			usduYieldGain: Big(0),
+			collateralGain: Big(0),
+			stashedColl: Big(0),
+		},
+	});
+
+	return {
+		branches: {
+			WWBTC: emptyBranch('WWBTC'),
+			TBTC: emptyBranch('TBTC'),
+			SOLVBTC: emptyBranch('SOLVBTC'),
+		},
+		totalCollateral: Big(0),
+		totalDebt: Big(0),
+		totalSpUsdu: Big(0),
+		totalSpYieldGain: Big(0),
+		totalSpCollGain: Big(0),
 	};
 }
 
@@ -125,10 +178,11 @@ export async function calculateMnav(env: Env): Promise<MnavResult> {
 	const startTime = Date.now();
 	const warnings: string[] = [];
 
-	try {
-		// Fetch all data in parallel with individual error handling
-		console.log('[mnav] Fetching positions and prices...');
+	// Get network from env (default to sepolia for safety)
+	const network: Network = (env.NETWORK as Network) || 'sepolia';
+	console.log(`[mnav] Network: ${network}`);
 
+	try {
 		// Helper to safely fetch with fallback
 		const safeFetch = async <T>(
 			name: string,
@@ -150,20 +204,12 @@ export async function calculateMnav(env: Env): Promise<MnavResult> {
 		const defaultEthWbtc = { balance: Big(0), blockNumber: 0 };
 		const defaultStarknetWallet = { wbtc: Big(0), usdu: Big(0), usdc: Big(0), blockNumber: 0 };
 		const defaultUncap = {
-			positions: {
-				collateral: Big(0),
-				debt: Big(0),
-				stabilityPool: {
-					usdu: Big(0),
-					usduYieldGain: Big(0),
-					collateralGain: Big(0),
-					stashedColl: Big(0),
-				},
-			},
+			positions: createEmptyUncapPositions(),
 			blockNumber: 0,
 		};
 
 		// Fetch all in parallel - prices are critical, others can fail gracefully
+		console.log('[mnav] Fetching positions and prices...');
 		const [ethResult, starknetResult, uncapResult, pricesResult] = await Promise.all([
 			safeFetch(
 				'Ethereum WBTC balance',
@@ -172,19 +218,18 @@ export async function calculateMnav(env: Env): Promise<MnavResult> {
 			),
 			safeFetch(
 				'Starknet wallet',
-				() => fetchStarknetWallet(env.STARKNET_RPC_URL, env.CURATOR_STARKNET_ADDRESS),
+				() => fetchStarknetWallet(env.STARKNET_RPC_URL, env.CURATOR_STARKNET_ADDRESS, network),
 				defaultStarknetWallet
 			),
 			safeFetch(
 				'Uncap positions',
-				() => fetchUncapPositions(env.STARKNET_RPC_URL, env.CURATOR_STARKNET_ADDRESS),
+				() => fetchUncapPositions(env.STARKNET_RPC_URL, env.CURATOR_STARKNET_ADDRESS, network),
 				defaultUncap
 			),
-			fetchPrices(env.STARKNET_RPC_URL), // Prices are critical - let this throw if it fails
+			fetchPrices(env.STARKNET_RPC_URL, network), // Prices are critical - let this throw if it fails
 		]);
 
-		// Track skipped components (blockNumber = 0 means skipped due to invalid config)
-		// Only add "skipped" warning if it wasn't already marked as failed by safeFetch
+		// Track skipped components
 		if (ethResult.result.blockNumber === 0 && !ethResult.failed) {
 			warnings.push('Ethereum WBTC balance skipped (invalid or missing config)');
 		}
@@ -208,7 +253,7 @@ export async function calculateMnav(env: Env): Promise<MnavResult> {
 
 		const prices: Prices = pricesResult.prices;
 
-		// Track block numbers (use 0 for skipped fetches)
+		// Track block numbers
 		const starknetBlocks = [
 			starknetResult.result.blockNumber,
 			uncapResult.result.blockNumber,
@@ -224,7 +269,6 @@ export async function calculateMnav(env: Env): Promise<MnavResult> {
 		const { totalWbtc, totalUsd } = calculateMnavValue(positions, prices);
 
 		// Format values for output
-		// Round to integer for Lagoon (sub-satoshi precision is not meaningful)
 		const totalAssetsRaw = totalWbtc.round(0, Big.roundHalfUp).toFixed(0);
 		const totalWbtcHuman = totalWbtc.div(Big(10).pow(DECIMALS.WBTC_ETH)).toFixed(8);
 		const totalUsdNum = Number(totalUsd.toFixed(2));
@@ -234,6 +278,7 @@ export async function calculateMnav(env: Env): Promise<MnavResult> {
 		const now = new Date();
 		const result: MnavResult = {
 			timestamp: now.toISOString(),
+			network,
 			blockNumbers,
 			positions: serializePositions(positions),
 			prices: serializePrices(prices),
@@ -245,10 +290,10 @@ export async function calculateMnav(env: Env): Promise<MnavResult> {
 		};
 
 		// Store in R2
-		const dateStr = now.toISOString().slice(0, 10); // YYYY-MM-DD
+		const dateStr = now.toISOString().slice(0, 10);
 		const timestampStr = now.toISOString().replace(/[:\-\.]/g, '').replace('000Z', 'Z');
-		const snapshotKey = `mnav-snapshots/${dateStr}/mnav-${timestampStr}.json`;
-		const latestKey = 'mnav-snapshots/latest.json';
+		const snapshotKey = `mnav-snapshots/${network}/${dateStr}/mnav-${timestampStr}.json`;
+		const latestKey = `mnav-snapshots/${network}/latest.json`;
 
 		const jsonContent = JSON.stringify(result, null, 2);
 		await Promise.all([

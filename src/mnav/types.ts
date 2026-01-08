@@ -37,23 +37,46 @@ export interface StarknetWalletPositions {
 }
 
 export interface StabilityPoolPosition {
-	/** USDU remaining in stability pool after liquidations */
+	/** USDU remaining in stability pool after liquidations (18 decimals) */
 	usdu: Big;
-	/** USDU yield gains from interest */
+	/** USDU yield gains from interest (18 decimals) */
 	usduYieldGain: Big;
-	/** WBTC gains from liquidations - pending */
+	/** Collateral gains from liquidations - pending (18 decimals) */
 	collateralGain: Big;
-	/** WBTC gains from liquidations - stashed from previous compounds */
+	/** Collateral gains from liquidations - stashed from previous compounds (18 decimals) */
 	stashedColl: Big;
 }
 
-export interface UncapPositions {
-	/** WBTC collateral deposited in Uncap trove */
+/** Position in a single Uncap branch (WWBTC, TBTC, or SOLVBTC) */
+export interface BranchPosition {
+	/** Branch name for identification */
+	branchName: string;
+	/** Collateral deposited in trove (18 decimals, wrapped) */
 	collateral: Big;
-	/** USDU debt owed */
+	/** USDU debt owed (18 decimals) */
 	debt: Big;
-	/** Stability pool position */
+	/** Stability pool position in this branch */
 	stabilityPool: StabilityPoolPosition;
+}
+
+/** Aggregated positions across all Uncap branches */
+export interface UncapPositions {
+	/** Individual branch positions */
+	branches: {
+		WWBTC: BranchPosition;
+		TBTC: BranchPosition;
+		SOLVBTC: BranchPosition;
+	};
+	/** Total collateral across all branches (for convenience) */
+	totalCollateral: Big;
+	/** Total debt across all branches (for convenience) */
+	totalDebt: Big;
+	/** Total stability pool USDU across all branches */
+	totalSpUsdu: Big;
+	/** Total stability pool yield gains across all branches */
+	totalSpYieldGain: Big;
+	/** Total stability pool collateral gains across all branches */
+	totalSpCollGain: Big;
 }
 
 export interface Positions {
@@ -67,7 +90,7 @@ export interface Positions {
 // ============================================
 
 export interface Prices {
-	/** WBTC/USD price */
+	/** WBTC/USD price (18 decimals) */
 	wbtcUsd: Big;
 }
 
@@ -78,6 +101,8 @@ export interface Prices {
 export interface MnavResult {
 	/** ISO 8601 timestamp of calculation */
 	timestamp: string;
+	/** Network used for calculation */
+	network: string;
 	/** Block numbers used for calculation */
 	blockNumbers: BlockNumbers;
 	/** All positions (serialized as strings) */
@@ -101,18 +126,38 @@ export interface MnavResult {
 	warnings: string[];
 }
 
+/** Serialized stability pool position */
+export interface SerializedStabilityPool {
+	usdu: string;
+	usduYieldGain: string;
+	collateralGain: string;
+	stashedColl: string;
+}
+
+/** Serialized branch position */
+export interface SerializedBranchPosition {
+	branchName: string;
+	collateral: string;
+	debt: string;
+	stabilityPool: SerializedStabilityPool;
+}
+
 /** Positions serialized as strings for JSON storage */
 export interface SerializedPositions {
 	ethereum: { wbtc: string };
 	starknet: { wbtc: string; usdu: string; usdc: string };
 	uncap: {
-		collateral: string;
-		debt: string;
-		stabilityPool: {
-			usdu: string;
-			usduYieldGain: string;
-			collateralGain: string;
-			stashedColl: string;
+		branches: {
+			WWBTC: SerializedBranchPosition;
+			TBTC: SerializedBranchPosition;
+			SOLVBTC: SerializedBranchPosition;
+		};
+		totals: {
+			collateral: string;
+			debt: string;
+			spUsdu: string;
+			spYieldGain: string;
+			spCollGain: string;
 		};
 	};
 }
@@ -141,6 +186,13 @@ export interface StarknetWalletResult {
 	blockNumber: number;
 }
 
+/** Result from fetching a single branch's positions */
+export interface BranchPositionResult {
+	position: BranchPosition;
+	blockNumber: number;
+}
+
+/** Result from fetching all Uncap positions across branches */
 export interface UncapPositionsResult {
 	positions: UncapPositions;
 	blockNumber: number;

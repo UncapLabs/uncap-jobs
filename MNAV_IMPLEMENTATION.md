@@ -7,14 +7,30 @@ Add an mNAV (market Net Asset Value) calculator to the existing Cloudflare Worke
 ## Phase 1 Scope (Current Implementation)
 
 - Ethereum WBTC wallet balance
-- Starknet WBTC wallet balance
-- Uncap positions (collateral, debt, stability pool)
-- Price feeds from Uncap oracle
+- Starknet WBTC/USDU/USDC wallet balances
+- Uncap positions across **all 3 branches** (WWBTC, TBTC, SOLVBTC):
+  - Trove collateral and debt
+  - Stability pool deposits and gains
+- Price feed from Uncap oracle (WBTC/USD)
 
 ## Phase 2 (Later)
 
 - Vesu USDC position
 - Extended USDC position
+
+---
+
+## Key Simplifications
+
+### BTC Variant Pricing
+All BTC variants (WBTC, TBTC, SOLVBTC) are treated as **1:1 with WBTC**. Rationale: the curator claims and swaps collateral gains to WBTC immediately after liquidations, so we don't need separate price feeds.
+
+### Stablecoin Pricing
+USDU and USDC are assumed to be **$1.00**. No oracle check needed.
+
+### What We Don't Track
+- Bridge in-flight assets (not significant)
+- Unclaimed STRK rewards (curator claims weekly and swaps to WBTC)
 
 ---
 
@@ -34,11 +50,11 @@ src/
     │
     ├── fetchers/
     │   ├── ethereum-wbtc.ts          # Fetch ETH WBTC balance (viem)
-    │   ├── starknet-wbtc.ts          # Fetch Starknet WBTC balance
-    │   └── uncap-positions.ts        # Fetch collateral, debt, SP positions
+    │   ├── starknet-wallet.ts        # Fetch Starknet WBTC/USDU/USDC balances
+    │   └── uncap-positions.ts        # Fetch collateral, debt, SP positions (all branches)
     │
     └── prices/
-        └── uncap-oracle.ts           # Fetch prices from Uncap PriceFeed
+        └── uncap-oracle.ts           # Fetch WBTC/USD price from Uncap PriceFeed
 ```
 
 ---
@@ -49,64 +65,104 @@ All values use Big.js for precision. Raw bigints from contracts are converted vi
 
 ```
 mNAV (in WBTC) =
-    + ethereum.wbtc                           # Wallet balance on Ethereum
-    + starknet.wbtc                           # Wallet balance on Starknet
-    + uncap.collateral                        # WBTC collateral in trove
-    - uncap.debt / wbtcPrice                  # USDU debt converted to WBTC
-    + uncap.stabilityPool.usdu / wbtcPrice    # SP USDU balance
-    + uncap.stabilityPool.usduYieldGain / wbtcPrice  # SP yield gains
-    + uncap.stabilityPool.collateralGain      # SP collateral from liquidations (pending)
-    + uncap.stabilityPool.stashedColl         # SP collateral from liquidations (stashed)
-```
 
----
+  ┌─ WALLET BALANCES ─────────────────────────────────────┐
+  │ + ethereum.wbtc                                       │
+  │ + starknet.wbtc                                       │
+  │ + starknet.usdu / wbtcPrice                           │
+  │ + starknet.usdc / wbtcPrice                           │
+  └───────────────────────────────────────────────────────┘
 
-## Dependencies
+  ┌─ UNCAP: TROVE POSITIONS (all branches) ───────────────┐
+  │ + wwbtc.collateral                                    │
+  │ + tbtc.collateral      (treated as 1:1 WBTC)          │
+  │ + solvbtc.collateral   (treated as 1:1 WBTC)          │
+  │                                                       │
+  │ - wwbtc.debt / wbtcPrice                              │
+  │ - tbtc.debt / wbtcPrice                               │
+  │ - solvbtc.debt / wbtcPrice                            │
+  └───────────────────────────────────────────────────────┘
 
-```json
-{
-  "dependencies": {
-    "viem": "^2.x",
-    "starknet": "^9.x",
-    "big.js": "^6.x"
-  }
-}
+  ┌─ UNCAP: STABILITY POOL POSITIONS (all branches) ──────┐
+  │ For each branch (WWBTC, TBTC, SOLVBTC):               │
+  │   + sp.usdu / wbtcPrice                               │
+  │   + sp.usduYieldGain / wbtcPrice                      │
+  │   + sp.collateralGain   (treated as 1:1 WBTC)         │
+  │   + sp.stashedColl      (treated as 1:1 WBTC)         │
+  └───────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## Contract Addresses
 
-### Ethereum Mainnet
-- WBTC: `0x2260fac5e5542a773aa44fbcfedf7c193bc2c599`
+> **Current setup:** All addresses are **Sepolia testnet** for testing. Set `NETWORK=mainnet` and update addresses when ready for production.
 
-### Starknet Mainnet (WWBTC Branch)
-From `src/contracts/mainnet_addresses.json`:
+### Starknet Sepolia - Tokens
 
+| Token | Address | Decimals |
+|-------|---------|----------|
+| USDU | `0x31acb4c34a696fd8299458334688c4fa033789f2523545ddc32d2443079f752` | 18 |
+
+### Uncap Protocol - All Branches (Sepolia)
+
+#### WWBTC Branch
 | Contract | Address |
 |----------|---------|
-| WBTC (underlying, 8 dec) | `0x03fe2b97c1fd336e750087d68b9b867997fd64a2661ff3ca5a7c771641e8e7ac` |
-| WWBTC (wrapped, 18 dec) | `0x75d9e518f46a9ca0404fb0a7d386ce056dadf57fd9a0e8659772cb517be4a18` |
-| TroveManager | `0x586fc03b4e6901ef423890c19e8fcf528a269329ab23ff7cb2df975ec3d4d62` |
-| StabilityPool | `0x1ba4a9e2e86a41c6ed15016eda0404d12bf7b01052cccff1ace84d818335c7` |
-| PriceFeed | `0x6716836514e75e9f4eaa0fe93aa0448480a321b669041d6b5f27aa75374ac66` |
+| Collateral (WWBTC, 18 dec) | `0x2f2099951753de295a0c35f92e7b16b0c270a187b1ed25116dc10894d0098c8` |
+| Underlying (WBTC, 8 dec) | `0x7949ea83decd19972b5ff333d1d5bcfd1883d9ea6625c7a319cf28b8aebde43` |
+| AddressesRegistry | `0x821c815c69d5bf4258366a718913610ede38e78e2e3afd8f0f512c33f3d336` |
+| TroveManager | `0x329667dd0d7920a59b7d9c240ca37e436efc50305cba697e51a0b0608512205` |
+| StabilityPool | `0x39c87231ae004831a8b88161f0686de0a2c535c945ddcc3980cdbd26484ca1f` |
+| PriceFeed | `0x1e6f31a6a446b2b74803211d973a174c82345a1b1bd596f8125c2cecd502d6f` |
+
+#### TBTC Branch
+| Contract | Address |
+|----------|---------|
+| Collateral | `0x0315e7b7903EB1D0bEcEBfc3cC5a056D7378883FB00D2400636c30BFef1EEf8c` |
+| AddressesRegistry | `0x2eb409d9492e45e9abd09f0e1a47a2894104d5f2facc4d0639dedb8022aaf00` |
+| TroveManager | `0x26877ec7c22ad5a0f36b050ac047d2d174f7f0c159eebf82d1a91a22e78f3b8` |
+| StabilityPool | `0x6a60aedf5fa8bee82cc5eeade200d8221aa5e81be4c31cb558e0603d2d7c29` |
+| PriceFeed | `0x3b83db36200a2083e94380f0c9cf2344a91198a200c563c188fd4f915718a50` |
+
+#### SOLVBTC Branch
+| Contract | Address |
+|----------|---------|
+| Collateral | `0x024f3eda4bEfeb9843C511b94C8EBA8929C7b3dFC3f8D05F5F0A91bF923D0977` |
+| AddressesRegistry | `0x2fb257d6a4f47f800de836eeae64d0a36567fd69867939870d0da1ed7170b82` |
+| TroveManager | `0x239a62bbd8a01324c99cd1d7210ee86f10c4e95a1ebce25cc5acab89567039c` |
+| StabilityPool | `0x65ed413043f88a481b4337cae609c53e28cebc1ee9f549cb73dd1dd003bbcf8` |
+| PriceFeed | `0x3f59f3fa4ff8da71e68866df7c55edad5b7ea4a55faa3419f980ee63fc09253` |
+
+### Mainnet Addresses (TODO: Add when ready)
+
+```typescript
+// Will be populated when deploying to production
+const MAINNET_ADDRESSES = {
+  // ...
+};
+```
 
 ---
 
 ## Environment Variables Needed
 
 ```bash
+# Network selection (sepolia | mainnet)
+NETWORK=sepolia
+
 # RPC Endpoints
 ETHEREUM_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY
-STARKNET_RPC_URL=https://starknet-mainnet.g.alchemy.com/v2/YOUR_KEY
+STARKNET_RPC_URL=https://starknet-sepolia.g.alchemy.com/v2/YOUR_KEY
 
 # Curator Addresses (TBD)
 CURATOR_ETH_ADDRESS=0x...
 CURATOR_STARKNET_ADDRESS=0x...
-
-# Curator's Trove ID in Uncap
-CURATOR_TROVE_ID=...
 ```
+
+**Notes:**
+- Ethereum RPC always uses mainnet (WBTC contract only exists there). On Sepolia testing, Ethereum balance will be 0.
+- Trove IDs are discovered dynamically via indexer. The indexer returns troves across all branches with a branch ID prefix (e.g., "0:troveId" for WWBTC, "1:troveId" for TBTC).
 
 ---
 
@@ -117,47 +173,39 @@ CURATOR_TROVE_ID=...
 
 ### Starknet (starknet.js)
 
-**Wallet Balance:**
+**Wallet Balances:**
 - `WBTC.balance_of(curator)` → balance (8 decimals)
+- `USDU.balance_of(curator)` → balance (18 decimals)
+- `USDC.balance_of(curator)` → balance (6 decimals)
 
-**Trove Position (TroveManager):**
+**Trove Position (TroveManager) - per branch:**
 - `get_latest_trove_data(trove_id)` → returns struct with:
   - `entire_coll` (18 decimals, wrapped)
   - `entire_debt` (18 decimals, USDU)
 
-**Stability Pool:**
+**Stability Pool - per branch:**
 - `get_compounded_usdu_deposit(curator)` → USDU balance (18 decimals)
 - `get_depositor_yield_gain(curator)` → USDU yield (18 decimals)
 - `get_depositor_coll_gain(curator)` → collateral gains pending (18 decimals)
 - `get_stashed_coll(curator)` → collateral gains stashed (18 decimals)
 
-**Price Feed:**
-- `fetch_price()` → WBTC/USD price (18 decimals)
+**Price Feed (WWBTC branch only):**
+- `get_price()` → WBTC/USD price (18 decimals)
 
 ---
 
-## Database Schema
+## Storage
 
-Add to `src/db/schema.ts`:
+Results are stored in **R2** (no database needed):
 
-```typescript
-export const mnavSnapshots = sqliteTable('mnav_snapshots', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  timestamp: text('timestamp').notNull(),
-  ethereumBlock: integer('ethereum_block').notNull(),
-  starknetBlock: integer('starknet_block').notNull(),
-  positionsJson: text('positions_json').notNull(),
-  pricesJson: text('prices_json').notNull(),
-  totalValueWbtc: text('total_value_wbtc').notNull(),
-  totalValueUsd: text('total_value_usd').notNull(),
-  calculationVersion: text('calculation_version').notNull(),
-  warningsJson: text('warnings_json'),
-  createdAt: integer('created_at', { mode: 'timestamp_ms' })
-    .default(sql`(unixepoch() * 1000)`).notNull(),
-}, (table) => ({
-  timestampIdx: index('idx_mnav_timestamp').on(table.timestamp),
-}));
 ```
+mnav-snapshots/
+├── latest.json                      # Most recent calculation
+└── YYYY-MM-DD/
+    └── mnav-YYYYMMDDTHHMMSSZ.json   # Historical snapshots
+```
+
+Each snapshot contains the full `MnavResult` object with positions, prices, and calculated totals.
 
 ---
 
@@ -177,30 +225,33 @@ POST /admin/calculate-mnav
 
 ## Implementation Checklist
 
+### Done
 - [x] Install dependencies (viem, starknet, big.js)
 - [x] Create `src/mnav/types.ts` - Type definitions with Big.js
-- [x] Create `src/mnav/config.ts` - Addresses and ABIs
+- [x] Create `src/mnav/config.ts` - Addresses and ABIs (WWBTC branch only)
 - [x] Create `src/mnav/utils.ts` - Big.js export + retry helper
 - [x] Create `src/mnav/fetchers/ethereum-wbtc.ts` - Ethereum balance
-- [x] Create `src/mnav/fetchers/starknet-wbtc.ts` - Starknet balance
-- [ ] Create `src/mnav/fetchers/uncap-positions.ts` - Trove + SP positions
-- [ ] Create `src/mnav/prices/uncap-oracle.ts` - Price fetcher
-- [ ] Create `src/mnav/calculate-mnav.ts` - Main orchestrator
-- [ ] Add `mnavSnapshots` table to `src/db/schema.ts`
+- [x] Create `src/mnav/fetchers/starknet-wallet.ts` - Starknet WBTC/USDU/USDC balances
+- [x] Create `src/mnav/fetchers/uncap-positions.ts` - Trove + SP positions (WWBTC only)
+- [x] Create `src/mnav/prices/uncap-oracle.ts` - Price fetcher
+- [x] Create `src/mnav/calculate-mnav.ts` - Main orchestrator
+- [x] R2 storage for snapshots
+
+### TODO - Multi-Branch Support
+- [ ] Add `NETWORK` env var support to `config.ts`
+- [ ] Update `config.ts` with Sepolia addresses for all 3 branches
+- [ ] Update `uncap-positions.ts` to fetch from all 3 branches
+- [ ] Update `types.ts` to support multi-branch positions
+- [ ] Update `calculate-mnav.ts` to aggregate all branches
+
+### TODO - Worker Integration
 - [ ] Update `src/index.ts` with endpoint and cron
 - [ ] Update `wrangler.jsonc` with new cron schedule
 - [ ] Add environment variables to `.dev.vars`
 
----
-
-## Reusable Code from `src/contracts/`
-
-The existing `src/contracts/` folder contains:
-- **ABIs**: TroveManager, StabilityPool, PriceFeed, UBTC (ERC20)
-- **Mainnet addresses**: `mainnet_addresses.json`
-- **Contract readers**: `calls.ts` has patterns for `contractRead.troveManager.getLatestTroveData()` and `contractRead.stabilityPool.getUserPosition()`
-
-Note: The `calls.ts` imports from `~/lib/collateral` which is a frontend module - we adapt the patterns for the worker context.
+### TODO - Production
+- [ ] Add mainnet addresses to `config.ts`
+- [ ] Test with `NETWORK=mainnet`
 
 ---
 
@@ -210,8 +261,24 @@ Note: The `calls.ts` imports from `~/lib/collateral` which is a frontend module 
 |-------|----------|-------|
 | WBTC (Ethereum) | 8 | Native precision |
 | WBTC (Starknet underlying) | 8 | Bridged from Ethereum |
-| WWBTC (Starknet wrapped) | 18 | Used in Uncap protocol |
-| USDU | 18 | Stablecoin |
+| WWBTC/TBTC/SOLVBTC (wrapped) | 18 | Used in Uncap protocol |
+| USDU | 18 | Stablecoin (assume $1) |
+| USDC | 6 | Stablecoin (assume $1) |
 | Prices | 18 | From oracle |
 
 All values are stored as raw bigints, converted to Big.js for calculations, then serialized as strings for storage.
+
+---
+
+## Multi-Branch Architecture
+
+The Uncap protocol has separate "branches" for each BTC collateral type. Each branch has its own:
+- TroveManager (manages borrowing positions)
+- StabilityPool (absorbs liquidations)
+- PriceFeed (oracle for that collateral)
+
+The curator may have:
+- Troves in multiple branches (collateral + debt)
+- Stability pool deposits in multiple branches (USDU + collateral gains)
+
+We query all 3 branches and sum the positions. All collateral types are treated as equivalent to WBTC (1:1 ratio).
