@@ -562,10 +562,10 @@ Use **Uncap's on-chain oracle** as the primary price source for BTC and BTC vari
 | Asset | Source | Notes |
 |-------|--------|-------|
 | WBTC/USD | Uncap Oracle | Primary BTC price |
-| TBTC/WBTC | Uncap Oracle | For SP liquidation gains |
-| SOLVBTC/WBTC | Uncap Oracle | For SP liquidation gains |
-| USDC/USD | Assume 1.0 | Or use Pragma oracle |
-| USDU/USD | Assume 1.0 | Or track if depegged |
+| TBTC/WBTC | 1:1 | All BTC variants treated as equivalent |
+| SOLVBTC/WBTC | 1:1 | All BTC variants treated as equivalent |
+| USDC/USD | Assume 1.0 | Stablecoin |
+| USDU/USD | Assume 1.0 | Stablecoin |
 
 ### Price Calculation
 
@@ -575,16 +575,7 @@ All non-WBTC assets must be converted to WBTC:
 WBTC_value = USD_value / WBTC_USD_price
 ```
 
-For BTC variants received from liquidations:
-```
-WBTC_equivalent = TBTC_amount × TBTC_WBTC_ratio
-```
-
-### Handling Price Staleness
-
-- Check oracle's last update timestamp
-- If price is stale (>1 hour old), log warning
-- Consider fallback to secondary oracle (Pragma, etc.)
+For BTC variants (TBTC, SOLVBTC), we use 1:1 with WBTC since the curator claims and swaps immediately after liquidations.
 
 ---
 
@@ -624,16 +615,7 @@ WBTC_equivalent = TBTC_amount × TBTC_WBTC_ratio
 - Include bridged assets based on bridge state
 - May need to query bridge contract for in-flight assets
 
-### 5. Stablecoin Depeg
-
-**Scenario**: USDU or USDC trades below $1
-
-**Handling**:
-- Use actual market price if available
-- Log warning if significant depeg detected
-- Consider circuit breaker if depeg exceeds threshold
-
-### 6. Failed RPC Calls
+### 5. Failed RPC Calls
 
 **Scenario**: RPC provider returns error or timeout
 
@@ -642,7 +624,7 @@ WBTC_equivalent = TBTC_amount × TBTC_WBTC_ratio
 - Use fallback RPC provider if available
 - Do NOT publish stale NAV - fail loudly
 
-### 7. Contract Upgrades
+### 6. Contract Upgrades
 
 **Scenario**: Protocol contracts are upgraded
 
@@ -694,9 +676,6 @@ interface MnavResult {
   // Prices used
   prices: {
     wbtcUsd: string;
-    tbtcWbtc: string;
-    solvbtcWbtc: string;
-    usdcUsd: string;
   };
 
   // Final calculation
@@ -720,14 +699,6 @@ Options:
 - Cloudflare D1 (SQLite database)
 - Cloudflare KV (key-value store)
 - External database
-
-### Notifications
-
-Optional webhook/notification when:
-- Calculation completes successfully
-- Calculation fails
-- Significant position changes detected
-- Price anomalies detected
 
 ---
 

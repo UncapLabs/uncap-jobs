@@ -225,33 +225,35 @@ POST /admin/calculate-mnav
 
 ## Implementation Checklist
 
-### Done
+### Done - Core Implementation
 - [x] Install dependencies (viem, starknet, big.js)
 - [x] Create `src/mnav/types.ts` - Type definitions with Big.js
-- [x] Create `src/mnav/config.ts` - Addresses and ABIs (WWBTC branch only)
+- [x] Create `src/mnav/config.ts` - Addresses and ABIs
 - [x] Create `src/mnav/utils.ts` - Big.js export + retry helper
 - [x] Create `src/mnav/fetchers/ethereum-wbtc.ts` - Ethereum balance
 - [x] Create `src/mnav/fetchers/starknet-wallet.ts` - Starknet WBTC/USDU/USDC balances
-- [x] Create `src/mnav/fetchers/uncap-positions.ts` - Trove + SP positions (WWBTC only)
+- [x] Create `src/mnav/fetchers/uncap-positions.ts` - Trove + SP positions
 - [x] Create `src/mnav/prices/uncap-oracle.ts` - Price fetcher
 - [x] Create `src/mnav/calculate-mnav.ts` - Main orchestrator
 - [x] R2 storage for snapshots
 
-### TODO - Multi-Branch Support
-- [ ] Add `NETWORK` env var support to `config.ts`
-- [ ] Update `config.ts` with Sepolia addresses for all 3 branches
-- [ ] Update `uncap-positions.ts` to fetch from all 3 branches
-- [ ] Update `types.ts` to support multi-branch positions
-- [ ] Update `calculate-mnav.ts` to aggregate all branches
+### Done - Multi-Branch Support
+- [x] Add `NETWORK` env var support to `config.ts`
+- [x] Update `config.ts` with Sepolia addresses for all 3 branches
+- [x] Update `uncap-positions.ts` to fetch from all 3 branches (indexer + branch grouping)
+- [x] Update `types.ts` to support multi-branch positions (`BranchPosition`, aggregated totals)
+- [x] Update `calculate-mnav.ts` to aggregate all branches
 
-### TODO - Worker Integration
-- [ ] Update `src/index.ts` with endpoint and cron
-- [ ] Update `wrangler.jsonc` with new cron schedule
-- [ ] Add environment variables to `.dev.vars`
+### Done - Worker Integration
+- [x] HTTP endpoint: `POST /admin/calculate-mnav`
+- [x] Cron schedule: `0 11 * * *` (daily at 11 AM UTC)
+- [x] Environment variables in `.dev.vars`
 
-### TODO - Production
-- [ ] Add mainnet addresses to `config.ts`
-- [ ] Test with `NETWORK=mainnet`
+### TODO - Production Deployment
+- [ ] Add mainnet addresses to `config.ts` (WWBTC, TBTC, SOLVBTC branches)
+- [ ] Set `NETWORK=mainnet` in production environment
+- [ ] Configure real curator addresses (`CURATOR_ETH_ADDRESS`, `CURATOR_STARKNET_ADDRESS`)
+- [ ] Test with mainnet data
 
 ---
 
