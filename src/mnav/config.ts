@@ -207,7 +207,7 @@ export const DECIMALS = {
 
 export const MNAV_CONFIG = {
 	/** Current calculation version */
-	CALCULATION_VERSION: '1.1.0',
+	CALCULATION_VERSION: '1.2.0',
 
 	/** Price staleness threshold in milliseconds (1 hour) */
 	PRICE_STALENESS_THRESHOLD_MS: 60 * 60 * 1000,
@@ -220,6 +220,18 @@ export const MNAV_CONFIG = {
 
 	/** Initial delay between retries in ms */
 	RETRY_DELAY_MS: 1000,
+} as const;
+
+// ============================================
+// Extended API Configuration
+// ============================================
+
+export const EXTENDED_CONFIG = {
+	/** Extended API base URL */
+	API_BASE: 'https://api.starknet.extended.exchange',
+
+	/** Spot balances endpoint */
+	SPOT_BALANCES_ENDPOINT: '/api/v1/user/spot/balances',
 } as const;
 
 // ============================================

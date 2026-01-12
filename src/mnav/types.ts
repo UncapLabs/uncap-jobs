@@ -79,10 +79,16 @@ export interface UncapPositions {
 	totalSpCollGain: Big;
 }
 
+export interface ExtendedPosition {
+	/** Value in USD (6 decimals like USDC) */
+	valueUsd: Big;
+}
+
 export interface Positions {
 	ethereum: EthereumPositions;
 	starknet: StarknetWalletPositions;
 	uncap: UncapPositions;
+	extended: ExtendedPosition;
 }
 
 // ============================================
@@ -160,6 +166,12 @@ export interface SerializedPositions {
 			spCollGain: string;
 		};
 	};
+	extended: {
+		/** Value in USD (raw, 6 decimals) */
+		valueUsd: string;
+		/** Value in USD (human-readable) */
+		valueUsdFormatted: string;
+	};
 }
 
 /** Prices serialized for JSON storage */
@@ -201,5 +213,12 @@ export interface UncapPositionsResult {
 export interface PricesResult {
 	prices: Prices;
 	blockNumber: number;
+}
+
+export interface ExtendedPositionResult {
+	/** Value in USD (6 decimals like USDC) */
+	valueUsd: Big;
+	/** Raw API response for debugging */
+	rawResponse: unknown;
 }
 

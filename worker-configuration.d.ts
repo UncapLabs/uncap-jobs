@@ -14,6 +14,7 @@ declare namespace Cloudflare {
 		STARKNET_RPC_URL: string;
 		CURATOR_ETH_ADDRESS: string;
 		CURATOR_STARKNET_ADDRESS: string;
+		EXTENDED_API_KEY: string;
 		POINTS_BACKUP_BUCKET: R2Bucket;
 		DB: D1Database;
 	}

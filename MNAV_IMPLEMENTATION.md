@@ -13,10 +13,13 @@ Add an mNAV (market Net Asset Value) calculator to the existing Cloudflare Worke
   - Stability pool deposits and gains
 - Price feed from Uncap oracle (WBTC/USD)
 
-## Phase 2 (Later)
+## Phase 2 (Current)
 
-- Vesu USDC position
-- Extended USDC position
+- [x] Extended vault position (XVS)
+
+## Phase 3 (Later)
+
+- 0D Finance position (https://docs.0d.finance/0d/introduction)
 
 ---
 
@@ -51,7 +54,8 @@ src/
     ├── fetchers/
     │   ├── ethereum-wbtc.ts          # Fetch ETH WBTC balance (viem)
     │   ├── starknet-wallet.ts        # Fetch Starknet WBTC/USDU/USDC balances
-    │   └── uncap-positions.ts        # Fetch collateral, debt, SP positions (all branches)
+    │   ├── uncap-positions.ts        # Fetch collateral, debt, SP positions (all branches)
+    │   └── extended.ts               # Fetch Extended vault position (XVS)
     │
     └── prices/
         └── uncap-oracle.ts           # Fetch WBTC/USD price from Uncap PriceFeed
@@ -89,6 +93,10 @@ mNAV (in WBTC) =
   │   + sp.usduYieldGain / wbtcPrice                      │
   │   + sp.collateralGain   (treated as 1:1 WBTC)         │
   │   + sp.stashedColl      (treated as 1:1 WBTC)         │
+  └───────────────────────────────────────────────────────┘
+
+  ┌─ EXTENDED VAULT ──────────────────────────────────────┐
+  │ + extended.valueUsd / wbtcPrice                       │
   └───────────────────────────────────────────────────────┘
 ```
 
@@ -158,6 +166,9 @@ STARKNET_RPC_URL=https://starknet-sepolia.g.alchemy.com/v2/YOUR_KEY
 # Curator Addresses (TBD)
 CURATOR_ETH_ADDRESS=0x...
 CURATOR_STARKNET_ADDRESS=0x...
+
+# Extended API (get key from https://app.extended.exchange/api-management)
+EXTENDED_API_KEY=your_api_key
 ```
 
 **Notes:**
@@ -191,6 +202,19 @@ CURATOR_STARKNET_ADDRESS=0x...
 
 **Price Feed (WWBTC branch only):**
 - `get_price()` → WBTC/USD price (18 decimals)
+
+### Extended API
+
+**Base URL:** `https://api.starknet.extended.exchange`
+
+**Authentication:**
+- `X-Api-Key` header with API key from Extended UI
+- `User-Agent` header required
+
+**Endpoint:**
+- `GET /api/v1/user/spot/balances` → returns vault position value in USD
+
+Note: This endpoint is not publicly documented but was provided by the Extended team.
 
 ---
 
@@ -249,10 +273,18 @@ POST /admin/calculate-mnav
 - [x] Cron schedule: `0 11 * * *` (daily at 11 AM UTC)
 - [x] Environment variables in `.dev.vars`
 
+### Done - Extended Integration
+- [x] Create `src/mnav/fetchers/extended.ts` - Extended API fetcher
+- [x] Update `types.ts` with Extended position types
+- [x] Update `config.ts` with Extended API configuration
+- [x] Update `calculate-mnav.ts` to include Extended in mNAV calculation
+- [x] Add `EXTENDED_API_KEY` environment variable
+
 ### TODO - Production Deployment
 - [ ] Add mainnet addresses to `config.ts` (WWBTC, TBTC, SOLVBTC branches)
 - [ ] Set `NETWORK=mainnet` in production environment
 - [ ] Configure real curator addresses (`CURATOR_ETH_ADDRESS`, `CURATOR_STARKNET_ADDRESS`)
+- [ ] Configure Extended API key (`EXTENDED_API_KEY`) via Cloudflare secrets
 - [ ] Test with mainnet data
 
 ---

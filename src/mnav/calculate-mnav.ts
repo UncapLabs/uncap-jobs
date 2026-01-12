@@ -9,6 +9,7 @@
 import { fetchEthereumWbtcBalance } from './fetchers/ethereum-wbtc';
 import { fetchStarknetWallet } from './fetchers/starknet-wallet';
 import { fetchUncapPositions } from './fetchers/uncap-positions';
+import { fetchExtendedPosition } from './fetchers/extended';
 import { fetchPrices } from './prices/uncap-oracle';
 import { Big } from './utils';
 import { MNAV_CONFIG, DECIMALS, type Network } from './config';
@@ -21,6 +22,7 @@ import type {
 	BranchPosition,
 	SerializedBranchPosition,
 	UncapPositions,
+	ExtendedPosition,
 } from './types';
 
 /**
@@ -38,6 +40,7 @@ import type {
  *        + uncap.totalSpUsdu (18 dec) / price (18 dec) * 10^8 -> 8 dec
  *        + uncap.totalSpYieldGain (18 dec) / price (18 dec) * 10^8 -> 8 dec
  *        + uncap.totalSpCollGain (18 dec) / 10^10 -> 8 dec (all BTC variants treated as 1:1)
+ *        + extended.valueUsd (6 dec) / price (18 dec) * 10^8 * 10^12 -> 8 dec
  */
 function calculateMnavValue(positions: Positions, prices: Prices): { totalWbtc: Big; totalUsd: Big } {
 	const price = prices.wbtcUsd; // 18 decimals
@@ -70,6 +73,9 @@ function calculateMnavValue(positions: Positions, prices: Prices): { totalWbtc: 
 	// SP collateral gains (18 dec -> 8 dec) - all BTC variants treated as 1:1
 	const spCollGainWbtc = positions.uncap.totalSpCollGain.div(scale18to8);
 
+	// Extended vault position (6 dec * 10^12 = 18 dec, then / 18 dec * 10^8 = 8 dec)
+	const extendedWbtc = positions.extended.valueUsd.times(scale6to18).div(price).times(scale0to8);
+
 	// Total mNAV in WBTC (8 decimals)
 	const totalWbtc = ethWbtc
 		.plus(starknetWbtc)
@@ -79,7 +85,8 @@ function calculateMnavValue(positions: Positions, prices: Prices): { totalWbtc: 
 		.minus(uncapDebtWbtc)
 		.plus(spUsduWbtc)
 		.plus(spYieldWbtc)
-		.plus(spCollGainWbtc);
+		.plus(spCollGainWbtc)
+		.plus(extendedWbtc);
 
 	// USD value: convert totalWbtc to actual WBTC amount, then multiply by USD price
 	const totalUsd = totalWbtc.times(price).div(Big(10).pow(DECIMALS.WBTC_ETH + DECIMALS.PRICE));
@@ -108,6 +115,9 @@ function serializeBranchPosition(branch: BranchPosition): SerializedBranchPositi
  * Serialize positions for JSON storage.
  */
 function serializePositions(positions: Positions): SerializedPositions {
+	// Format Extended USD value for human readability
+	const extendedUsdHuman = positions.extended.valueUsd.div(Big(10).pow(DECIMALS.USDC)).toFixed(2);
+
 	return {
 		ethereum: { wbtc: positions.ethereum.wbtc.toFixed(0) },
 		starknet: {
@@ -128,6 +138,10 @@ function serializePositions(positions: Positions): SerializedPositions {
 				spYieldGain: positions.uncap.totalSpYieldGain.toFixed(0),
 				spCollGain: positions.uncap.totalSpCollGain.toFixed(0),
 			},
+		},
+		extended: {
+			valueUsd: positions.extended.valueUsd.toFixed(0),
+			valueUsdFormatted: `$${extendedUsdHuman}`,
 		},
 	};
 }
@@ -207,10 +221,11 @@ export async function calculateMnav(env: Env): Promise<MnavResult> {
 			positions: createEmptyUncapPositions(),
 			blockNumber: 0,
 		};
+		const defaultExtended = { valueUsd: Big(0), rawResponse: null };
 
 		// Fetch all in parallel - prices are critical, others can fail gracefully
 		console.log('[mnav] Fetching positions and prices...');
-		const [ethResult, starknetResult, uncapResult, pricesResult] = await Promise.all([
+		const [ethResult, starknetResult, uncapResult, extendedResult, pricesResult] = await Promise.all([
 			safeFetch(
 				'Ethereum WBTC balance',
 				() => fetchEthereumWbtcBalance(env.ETHEREUM_RPC_URL, env.CURATOR_ETH_ADDRESS),
@@ -226,6 +241,7 @@ export async function calculateMnav(env: Env): Promise<MnavResult> {
 				() => fetchUncapPositions(env.STARKNET_RPC_URL, env.CURATOR_STARKNET_ADDRESS, network),
 				defaultUncap
 			),
+			safeFetch('Extended position', () => fetchExtendedPosition(env.EXTENDED_API_KEY), defaultExtended),
 			fetchPrices(env.STARKNET_RPC_URL, network), // Prices are critical - let this throw if it fails
 		]);
 
@@ -249,6 +265,7 @@ export async function calculateMnav(env: Env): Promise<MnavResult> {
 				usdc: starknetResult.result.usdc,
 			},
 			uncap: uncapResult.result.positions,
+			extended: { valueUsd: extendedResult.result.valueUsd },
 		};
 
 		const prices: Prices = pricesResult.prices;
