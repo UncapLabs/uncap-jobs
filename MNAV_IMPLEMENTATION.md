@@ -17,9 +17,11 @@ Add an mNAV (market Net Asset Value) calculator to the existing Cloudflare Worke
 
 - [x] Extended vault position (XVS)
 
-## Phase 3 (Later)
+## Phase 3 (Pending - API Not Ready)
 
-- 0D Finance position (https://docs.0d.finance/0d/introduction)
+- [ ] 0D Finance vault position
+
+> **Status:** API documentation complete, but `api.0d.finance` has TLS certificate issues (cert is for `*.production.pragma.build`). Implementation pending API availability.
 
 ---
 
@@ -55,7 +57,8 @@ src/
     │   ├── ethereum-wbtc.ts          # Fetch ETH WBTC balance (viem)
     │   ├── starknet-wallet.ts        # Fetch Starknet WBTC/USDU/USDC balances
     │   ├── uncap-positions.ts        # Fetch collateral, debt, SP positions (all branches)
-    │   └── extended.ts               # Fetch Extended vault position (XVS)
+    │   ├── extended.ts               # Fetch Extended vault position (XVS)
+    │   └── zero-delta.ts             # Fetch 0D Finance vault position (Phase 3 - TODO)
     │
     └── prices/
         └── uncap-oracle.ts           # Fetch WBTC/USD price from Uncap PriceFeed
@@ -98,6 +101,11 @@ mNAV (in WBTC) =
   ┌─ EXTENDED VAULT ──────────────────────────────────────┐
   │ + extended.valueUsd / wbtcPrice                       │
   └───────────────────────────────────────────────────────┘
+
+  ┌─ 0D FINANCE VAULT (Phase 3 - Pending) ──────────────────┐
+  │ + zeroDelta.valueUsd / wbtcPrice                        │
+  │   (value already in USD, convert to WBTC)               │
+  └─────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -216,6 +224,117 @@ EXTENDED_API_KEY=your_api_key
 
 Note: This endpoint is not publicly documented but was provided by the Extended team.
 
+### 0D Finance API
+
+**Docs:** https://docs.0d.finance/0d/introduction
+
+**Base URL:** `https://api.0d.finance/v1`
+
+> **API Status (Jan 2026):** TLS certificate mismatch - the API server certificate is for `*.production.pragma.build` instead of `api.0d.finance`. Implementation pending resolution.
+
+**Authentication:** None required (public API)
+
+**Rate Limit:** 100 requests/minute per IP
+
+#### Key Endpoints
+
+**1. List Vaults**
+```
+GET /vaults
+```
+Response:
+```json
+{
+  "items": [
+    {
+      "id": "string",
+      "name": "string",
+      "chain": "string",
+      "symbol": "string",
+      "tvl": "string",
+      "apr": "string",
+      "status": "string"
+    }
+  ]
+}
+```
+
+**2. User Position Summary** (Use this for mNAV)
+```
+GET /users/{address}/vaults/{vault_id}/summary
+```
+Response:
+```json
+{
+  "vault_id": "string",
+  "as_of": "2023-11-07T05:31:56Z",
+  "position_value_usd": "string",
+  "share_balance": "string",
+  "share_price": "string",
+  "total_deposits": "string",
+  "all_time_earned": "string",
+  "first_deposit_at": "2023-11-07T05:31:56Z"
+}
+```
+The `position_value_usd` field is what we need for mNAV calculation.
+
+**3. Vault Info**
+```
+GET /vaults/{vault_id}/info
+```
+Response:
+```json
+{
+  "aum": "string",
+  "buffer": "string",
+  "current_epoch": "string",
+  "pending_withdrawals_assets": "string",
+  "share_price_in_usd": "string",
+  "underlying_currency": "string"
+}
+```
+
+**4. Vault Stats**
+```
+GET /vaults/{vault_id}/stats
+```
+Response:
+```json
+{
+  "past_month_apr_pct": 123,
+  "tvl": "string"
+}
+```
+
+**5. Latest NAV Report**
+```
+GET /vaults/{vault_id}/nav/latest
+```
+Response:
+```json
+{
+  "apr_since_prev_pct": 123,
+  "aum": "string",
+  "date": "string",
+  "report_url": "string",
+  "var_since_prev_pct": 123
+}
+```
+
+#### mNAV Integration Plan
+
+When API is ready, create `src/mnav/fetchers/zero-delta.ts`:
+- Call `GET /users/{curator_address}/vaults/{vault_id}/summary`
+- Extract `position_value_usd`
+- Convert to 6-decimal format (like USDC)
+- Add to mNAV formula: `+ zeroDelta.valueUsd / wbtcPrice`
+
+Environment variables needed:
+```bash
+ZERO_DELTA_VAULT_ID=  # Set when vault launches (likely USDC vault)
+```
+Uses existing `CURATOR_STARKNET_ADDRESS` for the user address.
+
 ---
 
 ## Storage
@@ -279,6 +398,15 @@ POST /admin/calculate-mnav
 - [x] Update `config.ts` with Extended API configuration
 - [x] Update `calculate-mnav.ts` to include Extended in mNAV calculation
 - [x] Add `EXTENDED_API_KEY` environment variable
+
+### TODO - 0D Finance Integration (Phase 3)
+- [ ] Wait for API TLS certificate fix at `api.0d.finance`
+- [ ] Create `src/mnav/fetchers/zero-delta.ts` - 0D Finance API fetcher
+- [ ] Update `types.ts` with ZeroDeltaPosition types
+- [ ] Update `config.ts` with 0D Finance API configuration
+- [ ] Update `calculate-mnav.ts` to include 0D Finance in mNAV calculation
+- [ ] Add `ZERO_DELTA_VAULT_ID` environment variable
+- [ ] Test with real vault once launched
 
 ### TODO - Production Deployment
 - [ ] Add mainnet addresses to `config.ts` (WWBTC, TBTC, SOLVBTC branches)
