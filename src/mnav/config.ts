@@ -227,12 +227,22 @@ export const MNAV_CONFIG = {
 // ============================================
 
 export const EXTENDED_CONFIG = {
-	/** Extended API base URL */
-	API_BASE: 'https://api.starknet.extended.exchange',
+	/** Extended API base URLs by network */
+	API_BASE: {
+		mainnet: 'https://api.starknet.extended.exchange',
+		sepolia: 'https://api.starknet.sepolia.extended.exchange',
+	} as const,
 
 	/** Spot balances endpoint */
 	SPOT_BALANCES_ENDPOINT: '/api/v1/user/spot/balances',
 } as const;
+
+/**
+ * Get Extended API base URL for the specified network.
+ */
+export function getExtendedApiBase(network: Network): string {
+	return EXTENDED_CONFIG.API_BASE[network];
+}
 
 // ============================================
 // Viem ABI for Ethereum WBTC (ERC20)

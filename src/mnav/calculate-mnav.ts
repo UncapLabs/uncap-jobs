@@ -241,7 +241,7 @@ export async function calculateMnav(env: Env): Promise<MnavResult> {
 				() => fetchUncapPositions(env.STARKNET_RPC_URL, env.CURATOR_STARKNET_ADDRESS, network),
 				defaultUncap
 			),
-			safeFetch('Extended position', () => fetchExtendedPosition(env.EXTENDED_API_KEY), defaultExtended),
+			safeFetch('Extended position', () => fetchExtendedPosition(env.EXTENDED_API_KEY, network), defaultExtended),
 			fetchPrices(env.STARKNET_RPC_URL, network), // Prices are critical - let this throw if it fails
 		]);
 
