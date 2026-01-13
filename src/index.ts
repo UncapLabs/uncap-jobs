@@ -1,6 +1,6 @@
-import { calculateWeeklyPoints } from './calculate-weekly-points';
-import { exportPointsSnapshot } from './export-points-snapshot';
-import { generateWeeklyRewards } from './generate-weekly-rewards';
+import { calculateWeeklyPoints } from './points/calculate-weekly-points';
+import { exportPointsSnapshot } from './points/export-points-snapshot';
+import { generateWeeklyRewards } from './strk-rewards/generate-weekly-rewards';
 import { calculateMnav } from './mnav/calculate-mnav';
 
 async function runWeeklyPoints(env: Env, referenceDate?: Date, force = false) {

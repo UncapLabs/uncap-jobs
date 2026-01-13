@@ -1,5 +1,5 @@
-import { createDbClient, type DbClient } from './db/client';
-import { referralPointBreakdowns, referrals, userPoints, userTotalPoints } from './db/schema';
+import { createDbClient, type DbClient } from '../db/client';
+import { referralPointBreakdowns, referrals, userPoints, userTotalPoints } from '../db/schema';
 import { BLACKLISTED_ADDRESSES, POINTS_CONFIG, REFERRAL_CONFIG, type WeekConfig, type SeasonConfig } from './points-config';
 import { eq, sql } from 'drizzle-orm';
 

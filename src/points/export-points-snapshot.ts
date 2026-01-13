@@ -1,12 +1,12 @@
 import { asc } from "drizzle-orm";
-import { createDbClient } from "./db/client";
+import { createDbClient } from "../db/client";
 import {
 	referralCodes,
 	referralPointBreakdowns,
 	referrals,
 	userPoints,
 	userTotalPoints,
-} from "./db/schema";
+} from "../db/schema";
 
 type SnapshotOptions = {
 	referenceDate?: Date;
