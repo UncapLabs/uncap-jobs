@@ -1,5 +1,5 @@
 {
-	"name": "points",
+	"name": "uncap-jobs",
 	"version": "0.0.0",
 	"private": true,
 	"scripts": {
@@ -10,10 +10,14 @@
 		"cf-typegen": "wrangler types"
 	},
 	"dependencies": {
-		"drizzle-orm": "^0.33.0"
+		"big.js": "^7.0.1",
+		"drizzle-orm": "^0.33.0",
+		"starknet": "^9.2.1",
+		"viem": "^2.43.5"
 	},
 	"devDependencies": {
-		"@cloudflare/workers-types": "^4.20250109.0",
+		"@types/big.js": "^6.2.2",
+		"@types/node": "^25.0.7",
 		"typescript": "^5.5.2",
 		"wrangler": "^4.43.0"
 	}

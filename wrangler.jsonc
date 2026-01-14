@@ -4,7 +4,7 @@
  */
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "points",
+	"name": "uncap-jobs",
 	"main": "src/index.ts",
 	"compatibility_date": "2025-10-11",
 	"compatibility_flags": [
@@ -63,7 +63,8 @@
 			"crons": [
 				"0 18 * * FRI",
 				"0 10 * * FRI",
-				"0 16 * * THU"
+				"0 16 * * THU",
+				"0 11 * * *"
 			]
 		},
 	"env": {}
