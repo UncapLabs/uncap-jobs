@@ -2,6 +2,7 @@ import { calculateWeeklyPoints } from './points/calculate-weekly-points';
 import { exportPointsSnapshot } from './points/export-points-snapshot';
 import { generateWeeklyRewards } from './strk-rewards/generate-weekly-rewards';
 import { calculateMnav } from './mnav/calculate-mnav';
+import { checkLtvAlerts } from './ltv/check-ltv';
 
 async function runWeeklyPoints(env: Env, referenceDate?: Date, force = false) {
 	try {
@@ -65,6 +66,11 @@ export default {
 			return new Response(JSON.stringify({ status: 'scheduled' }), { status: 202, headers: { 'content-type': 'application/json' } });
 		}
 
+		if (url.pathname === '/admin/check-ltv' && request.method === 'POST') {
+			ctx.waitUntil(checkLtvAlerts(env));
+			return new Response(JSON.stringify({ status: 'scheduled' }), { status: 202, headers: { 'content-type': 'application/json' } });
+		}
+
 		return new Response('Points worker ready', { status: 200 });
 	},
 
@@ -84,6 +90,12 @@ export default {
 		// mNAV calculation - daily at 11 AM UTC
 		if (event.cron === '0 11 * * *') {
 			await calculateMnav(env);
+			return;
+		}
+
+		// LTV check - hourly (alerts on threshold crossing, daily summary)
+		if (event.cron === '0 * * * *') {
+			await checkLtvAlerts(env);
 			return;
 		}
 

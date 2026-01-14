@@ -29,6 +29,12 @@
 			"preview_bucket_name": "points-weekly-backups"
 		}
 	],
+	"kv_namespaces": [
+		{
+			"binding": "CACHE",
+			"id": "1fe3011279004ff490a11b66abd5af16"
+		}
+	],
 	/**
 	 * Smart Placement
 	 * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
@@ -64,7 +70,8 @@
 				"0 18 * * FRI",
 				"0 10 * * FRI",
 				"0 16 * * THU",
-				"0 11 * * *"
+				"0 11 * * *",
+				"0 * * * *"
 			]
 		},
 	"env": {}
