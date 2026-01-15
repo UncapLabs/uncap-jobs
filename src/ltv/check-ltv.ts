@@ -3,12 +3,11 @@
  *
  * Monitors LTV (Loan-to-Value) for curator's individual positions.
  * Sends Telegram alerts when any position crosses 65% LTV threshold.
- * Sends daily summary with all positions listed individually.
+ * Daily summary is handled separately by the mNAV job.
  */
 
 import { fetchIndividualPositions, type TrovePosition } from './fetch-individual-positions';
 import { fetchPrices } from '../mnav/prices/uncap-oracle';
-import { Big } from '../mnav/utils';
 import type { Network } from '../mnav/config';
 import { sendTelegramAlert, type TelegramConfig } from '../notifications/telegram';
 import {
@@ -20,7 +19,6 @@ import {
 } from './alert-state';
 
 const LTV_THRESHOLD = 0.65; // 65%
-const SUMMARY_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 interface PositionLtvData {
 	position: TrovePosition;
@@ -35,21 +33,12 @@ interface PositionLtvData {
  * LTV = debt / (collateral * price)
  */
 function calculatePositionLtv(position: TrovePosition, priceUsd: number): PositionLtvData {
-	// Convert from 18 decimals to human-readable
-	const debtUsd = Number(position.debt.div(Big(1e18)).toString());
-	const collateralBtc = Number(position.collateral.div(Big(1e18)).toString());
+	const debtUsd = position.debt.div(1e18).toNumber();
+	const collateralBtc = position.collateral.div(1e18).toNumber();
 	const collateralUsd = collateralBtc * priceUsd;
-
-	// Calculate LTV (handle zero collateral)
 	const ltv = collateralUsd > 0 ? debtUsd / collateralUsd : 0;
 
-	return {
-		position,
-		ltv,
-		debtUsd,
-		collateralBtc,
-		collateralUsd,
-	};
+	return { position, ltv, debtUsd, collateralBtc, collateralUsd };
 }
 
 /**
@@ -76,61 +65,8 @@ function formatThresholdAlert(data: PositionLtvData, priceUsd: number): string {
 }
 
 /**
- * Format the daily summary message with individual positions.
- */
-function formatSummary(allData: PositionLtvData[], priceUsd: number): string {
-	const lines = ['📊 <b>DAILY LTV SUMMARY</b>', ''];
-
-	if (allData.length === 0) {
-		lines.push('No active positions found.');
-	} else {
-		// Group by collateral type for cleaner display
-		const byCollateral = new Map<string, PositionLtvData[]>();
-		for (const data of allData) {
-			const key = data.position.displayName;
-			if (!byCollateral.has(key)) {
-				byCollateral.set(key, []);
-			}
-			byCollateral.get(key)!.push(data);
-		}
-
-		for (const [collateral, positions] of byCollateral) {
-			lines.push(`━━━ <b>${collateral}</b> ━━━`);
-
-			for (const data of positions) {
-				const ltvPercent = (data.ltv * 100).toFixed(2);
-				const status = data.ltv >= LTV_THRESHOLD ? '⚠️' : '✅';
-
-				lines.push(`  #${data.position.shortId}: ${ltvPercent}% ${status}`);
-				lines.push(`    Debt: ${data.debtUsd.toLocaleString('en-US', { maximumFractionDigits: 0 })} USDU`);
-				lines.push(`    Coll: ${data.collateralBtc.toFixed(5)} ${collateral}`);
-			}
-
-			lines.push('');
-		}
-	}
-
-	lines.push(`<b>BTC/USD:</b> $${priceUsd.toLocaleString('en-US', { maximumFractionDigits: 0 })}`);
-
-	return lines.join('\n');
-}
-
-/**
- * Check if enough time has passed since last summary (24 hours).
- */
-function shouldSendSummary(lastSummary: string): boolean {
-	if (!lastSummary) return true;
-
-	const lastTime = new Date(lastSummary).getTime();
-	const now = Date.now();
-
-	return now - lastTime >= SUMMARY_INTERVAL_MS;
-}
-
-/**
  * Main LTV check job.
- * Fetches individual positions, calculates LTV, sends alerts if needed.
- * Threshold alerts are sent immediately, summary is sent once per day.
+ * Fetches individual positions, calculates LTV, sends alerts if threshold crossed.
  */
 export async function checkLtvAlerts(env: Env): Promise<void> {
 	console.log('[ltv-check] Starting LTV check...');
@@ -169,7 +105,7 @@ export async function checkLtvAlerts(env: Env): Promise<void> {
 		]);
 
 		const positions = positionsResult.positions;
-		const priceUsd = Number(pricesResult.prices.wbtcUsd.div(Big(1e18)).toString());
+		const priceUsd = pricesResult.prices.wbtcUsd.div(1e18).toNumber();
 
 		console.log(`[ltv-check] BTC/USD price: $${priceUsd.toLocaleString()}`);
 		console.log(`[ltv-check] Found ${positions.length} active positions`);
@@ -208,16 +144,6 @@ export async function checkLtvAlerts(env: Env): Promise<void> {
 				);
 				clearPositionAlert(state, data.position.id);
 			}
-		}
-
-		// Send daily summary (only once per 24 hours)
-		if (shouldSendSummary(state.lastSummary)) {
-			const summaryMessage = formatSummary(allLtvData, priceUsd);
-			await sendTelegramAlert(telegramConfig, summaryMessage);
-			state.lastSummary = new Date().toISOString();
-			console.log('[ltv-check] Daily summary sent');
-		} else {
-			console.log('[ltv-check] Skipping summary (already sent within last 24h)');
 		}
 
 		// Update state

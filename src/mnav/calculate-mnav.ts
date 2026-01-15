@@ -11,6 +11,8 @@ import { fetchStarknetWallet } from './fetchers/starknet-wallet';
 import { fetchUncapPositions } from './fetchers/uncap-positions';
 import { fetchExtendedPosition } from './fetchers/extended';
 import { fetchPrices } from './prices/uncap-oracle';
+import { fetchIndividualPositions, type TrovePosition } from '../ltv/fetch-individual-positions';
+import { sendTelegramAlert, type TelegramConfig } from '../notifications/telegram';
 import { Big } from './utils';
 import { MNAV_CONFIG, DECIMALS, type Network } from './config';
 import type {
@@ -22,8 +24,17 @@ import type {
 	BranchPosition,
 	SerializedBranchPosition,
 	UncapPositions,
-	ExtendedPosition,
 } from './types';
+
+/** MCR (Minimum Collateral Ratio) by collateral type - used to calculate liquidation price */
+const MCR: Record<string, number> = {
+	WBTC: 1.15, // 115%
+	tBTC: 1.25, // 125%
+	SolvBTC: 1.25, // 125%
+};
+
+/** LTV warning threshold for position status indicator */
+const LTV_WARNING_THRESHOLD = 0.65;
 
 /**
  * Calculate mNAV from positions and prices.
@@ -157,6 +168,150 @@ function serializePrices(prices: Prices): SerializedPrices {
 	};
 }
 
+/** Calculated metrics for an individual position */
+interface PositionMetrics {
+	position: TrovePosition;
+	debtUsd: number;
+	collateralBtc: number;
+	collateralUsd: number;
+	ltv: number;
+	liquidationPrice: number;
+}
+
+/** Calculate LTV and liquidation price for an individual position */
+function calculatePositionMetrics(position: TrovePosition, priceUsd: number): PositionMetrics {
+	const debtUsd = position.debt.div(1e18).toNumber();
+	const collateralBtc = position.collateral.div(1e18).toNumber();
+	const collateralUsd = collateralBtc * priceUsd;
+	const ltv = collateralUsd > 0 ? debtUsd / collateralUsd : 0;
+
+	const mcr = MCR[position.displayName] ?? 1.25;
+	const liquidationPrice = collateralBtc > 0 ? (mcr * debtUsd) / collateralBtc : 0;
+
+	return { position, debtUsd, collateralBtc, collateralUsd, ltv, liquidationPrice };
+}
+
+/** Input data for the daily vault summary formatter */
+interface VaultSummaryInput {
+	ethWbtc: Big;
+	snWbtc: Big;
+	snUsdu: Big;
+	snUsdc: Big;
+	extendedUsd: Big;
+	individualPositions: TrovePosition[];
+	stabilityPoolUsdu: Big;
+	priceUsd: number;
+	totalNavWbtc: Big;
+	totalNavUsd: number;
+}
+
+/** Format USD amount with no decimals */
+function formatUsd(n: number): string {
+	return n.toLocaleString('en-US', { maximumFractionDigits: 0 });
+}
+
+/** Format BTC amount with 5 decimals */
+function formatBtc(n: number): string {
+	return n.toFixed(5);
+}
+
+/**
+ * Format the daily vault summary message for Telegram.
+ */
+function formatDailyVaultSummary(input: VaultSummaryInput): string {
+	const {
+		ethWbtc,
+		snWbtc,
+		snUsdu,
+		snUsdc,
+		extendedUsd,
+		individualPositions,
+		stabilityPoolUsdu,
+		priceUsd,
+		totalNavWbtc,
+		totalNavUsd,
+	} = input;
+
+	const lines: string[] = [];
+
+	// Header and total NAV
+	const totalWbtcNum = totalNavWbtc.div(1e8).toNumber();
+	lines.push(
+		'📊 <b>DAILY VAULT SUMMARY</b>',
+		'',
+		`<b>Total NAV:</b> ${formatBtc(totalWbtcNum)} WBTC ($${formatUsd(totalNavUsd)})`,
+		''
+	);
+
+	// Ethereum section
+	const ethWbtcNum = ethWbtc.div(1e8).toNumber();
+	lines.push(
+		'━━━ <b>ETHEREUM</b> ━━━',
+		`WBTC: ${formatBtc(ethWbtcNum)} ($${formatUsd(ethWbtcNum * priceUsd)})`,
+		''
+	);
+
+	// Starknet section
+	const snWbtcNum = snWbtc.div(1e8).toNumber();
+	lines.push(
+		'━━━ <b>STARKNET</b> ━━━',
+		`WBTC: ${formatBtc(snWbtcNum)} ($${formatUsd(snWbtcNum * priceUsd)})`,
+		`USDU: ${formatUsd(snUsdu.div(1e18).toNumber())}`,
+		`USDC: ${formatUsd(snUsdc.div(1e6).toNumber())}`,
+		''
+	);
+
+	// Extended section
+	lines.push(
+		'━━━ <b>EXTENDED</b> ━━━',
+		`USD: $${formatUsd(extendedUsd.div(1e6).toNumber())}`,
+		''
+	);
+
+	// Uncap positions section
+	lines.push('━━━ <b>UNCAP POSITIONS</b> ━━━');
+
+	const spUsduNum = stabilityPoolUsdu.div(1e18).toNumber();
+	if (spUsduNum > 0) {
+		lines.push(`Stability Pool: ${formatUsd(spUsduNum)} USDU`, '');
+	}
+
+	if (individualPositions.length === 0) {
+		lines.push('No active borrowing positions.');
+	} else {
+		// Group positions by collateral type
+		const positionsByCollateral = new Map<string, TrovePosition[]>();
+		for (const pos of individualPositions) {
+			const existing = positionsByCollateral.get(pos.displayName) ?? [];
+			positionsByCollateral.set(pos.displayName, [...existing, pos]);
+		}
+
+		for (const [collateral, positions] of positionsByCollateral) {
+			lines.push(`<b>${collateral}</b>`);
+
+			for (const pos of positions) {
+				const metrics = calculatePositionMetrics(pos, priceUsd);
+				const ltvPercent = (metrics.ltv * 100).toFixed(2);
+				const status = metrics.ltv >= LTV_WARNING_THRESHOLD ? '⚠️' : '✅';
+				const netValue = metrics.collateralUsd - metrics.debtUsd;
+
+				lines.push(
+					`  ${pos.shortId}`,
+					`    Collateral: ${formatBtc(metrics.collateralBtc)} ${collateral} ($${formatUsd(metrics.collateralUsd)})`,
+					`    Debt: ${formatUsd(metrics.debtUsd)} USDU`,
+					`    Net: $${formatUsd(netValue)}`,
+					`    LTV: ${ltvPercent}% ${status} | Liq: $${formatUsd(metrics.liquidationPrice)}`
+				);
+			}
+			lines.push('');
+		}
+	}
+
+	lines.push(`<b>BTC/USD:</b> $${formatUsd(priceUsd)}`);
+
+	return lines.join('\n');
+}
+
 /**
  * Create empty Uncap positions for fallback.
  */
@@ -222,28 +377,35 @@ export async function calculateMnav(env: Env): Promise<MnavResult> {
 			blockNumber: 0,
 		};
 		const defaultExtended = { valueUsd: Big(0), rawResponse: null };
+		const defaultIndividualPositions = { positions: [] as TrovePosition[], blockNumber: 0 };
 
 		// Fetch all in parallel - prices are critical, others can fail gracefully
 		console.log('[mnav] Fetching positions and prices...');
-		const [ethResult, starknetResult, uncapResult, extendedResult, pricesResult] = await Promise.all([
-			safeFetch(
-				'Ethereum WBTC balance',
-				() => fetchEthereumWbtcBalance(env.ETHEREUM_RPC_URL, env.CURATOR_ETH_ADDRESS),
-				defaultEthWbtc
-			),
-			safeFetch(
-				'Starknet wallet',
-				() => fetchStarknetWallet(env.STARKNET_RPC_URL, env.CURATOR_STARKNET_ADDRESS, network),
-				defaultStarknetWallet
-			),
-			safeFetch(
-				'Uncap positions',
-				() => fetchUncapPositions(env.STARKNET_RPC_URL, env.CURATOR_STARKNET_ADDRESS, network),
-				defaultUncap
-			),
-			safeFetch('Extended position', () => fetchExtendedPosition(env.EXTENDED_API_KEY, network), defaultExtended),
-			fetchPrices(env.STARKNET_RPC_URL, network), // Prices are critical - let this throw if it fails
-		]);
+		const [ethResult, starknetResult, uncapResult, extendedResult, individualPositionsResult, pricesResult] =
+			await Promise.all([
+				safeFetch(
+					'Ethereum WBTC balance',
+					() => fetchEthereumWbtcBalance(env.ETHEREUM_RPC_URL, env.CURATOR_ETH_ADDRESS),
+					defaultEthWbtc
+				),
+				safeFetch(
+					'Starknet wallet',
+					() => fetchStarknetWallet(env.STARKNET_RPC_URL, env.CURATOR_STARKNET_ADDRESS, network),
+					defaultStarknetWallet
+				),
+				safeFetch(
+					'Uncap positions',
+					() => fetchUncapPositions(env.STARKNET_RPC_URL, env.CURATOR_STARKNET_ADDRESS, network),
+					defaultUncap
+				),
+				safeFetch('Extended position', () => fetchExtendedPosition(env.EXTENDED_API_KEY, network), defaultExtended),
+				safeFetch(
+					'Individual Uncap positions',
+					() => fetchIndividualPositions(env.STARKNET_RPC_URL, env.CURATOR_STARKNET_ADDRESS, network),
+					defaultIndividualPositions
+				),
+				fetchPrices(env.STARKNET_RPC_URL, network), // Prices are critical - let this throw if it fails
+			]);
 
 		// Track skipped components
 		if (ethResult.result.blockNumber === 0 && !ethResult.failed) {
@@ -322,6 +484,32 @@ export async function calculateMnav(env: Env): Promise<MnavResult> {
 			}),
 		]);
 		console.log(`[mnav] Saved snapshot to ${snapshotKey}`);
+
+		// Send daily vault summary to Telegram
+		const telegramConfig: TelegramConfig = {
+			botToken: env.TELEGRAM_BOT_TOKEN_CRITICAL_ALERTS,
+			chatId: env.TELEGRAM_CHAT_ID_CRITICAL_ALERTS,
+		};
+
+		if (telegramConfig.botToken && telegramConfig.chatId) {
+			const priceUsd = Number(prices.wbtcUsd.div(Big(10).pow(DECIMALS.PRICE)).toString());
+			const summaryMessage = formatDailyVaultSummary({
+				ethWbtc: ethResult.result.balance,
+				snWbtc: starknetResult.result.wbtc,
+				snUsdu: starknetResult.result.usdu,
+				snUsdc: starknetResult.result.usdc,
+				extendedUsd: extendedResult.result.valueUsd,
+				individualPositions: individualPositionsResult.result.positions,
+				stabilityPoolUsdu: positions.uncap.totalSpUsdu,
+				priceUsd,
+				totalNavWbtc: totalWbtc,
+				totalNavUsd: totalUsdNum,
+			});
+			await sendTelegramAlert(telegramConfig, summaryMessage);
+			console.log('[mnav] Daily vault summary sent to Telegram');
+		} else {
+			console.warn('[mnav] Telegram credentials not configured, skipping daily summary');
+		}
 
 		const elapsed = Date.now() - startTime;
 		console.log(`[mnav] === mNAV Calculation Complete (${elapsed}ms) ===`);
