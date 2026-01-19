@@ -66,6 +66,23 @@ export default {
 			return new Response(JSON.stringify({ status: 'scheduled' }), { status: 202, headers: { 'content-type': 'application/json' } });
 		}
 
+		// API endpoint for fresh mNAV calculation (for Service Bindings)
+		if (url.pathname === '/api/mnav' && request.method === 'GET') {
+			try {
+				const result = await calculateMnav(env, { skipTelegram: true, skipStorage: true });
+				return new Response(JSON.stringify(result), {
+					status: 200,
+					headers: { 'content-type': 'application/json' },
+				});
+			} catch (error) {
+				console.error('[api/mnav] Calculation failed:', error);
+				return new Response(
+					JSON.stringify({ error: 'mNAV calculation failed', message: error instanceof Error ? error.message : String(error) }),
+					{ status: 500, headers: { 'content-type': 'application/json' } }
+				);
+			}
+		}
+
 		if (url.pathname === '/admin/check-ltv' && request.method === 'POST') {
 			ctx.waitUntil(checkLtvAlerts(env));
 			return new Response(JSON.stringify({ status: 'scheduled' }), { status: 202, headers: { 'content-type': 'application/json' } });

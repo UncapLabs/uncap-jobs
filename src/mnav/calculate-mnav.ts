@@ -342,7 +342,16 @@ function createEmptyUncapPositions(): UncapPositions {
 	};
 }
 
-export async function calculateMnav(env: Env): Promise<MnavResult> {
+/** Options for mNAV calculation */
+export interface CalculateMnavOptions {
+	/** Skip sending Telegram notification (default: false) */
+	skipTelegram?: boolean;
+	/** Skip storing snapshot in R2 (default: false) */
+	skipStorage?: boolean;
+}
+
+export async function calculateMnav(env: Env, options: CalculateMnavOptions = {}): Promise<MnavResult> {
+	const { skipTelegram = false, skipStorage = false } = options;
 	console.log('[mnav] === mNAV Calculation Starting ===');
 	const startTime = Date.now();
 	const warnings: string[] = [];
@@ -468,47 +477,51 @@ export async function calculateMnav(env: Env): Promise<MnavResult> {
 			warnings,
 		};
 
-		// Store in R2
-		const dateStr = now.toISOString().slice(0, 10);
-		const timestampStr = now.toISOString().replace(/[:\-\.]/g, '').replace('000Z', 'Z');
-		const snapshotKey = `mnav-snapshots/${network}/${dateStr}/mnav-${timestampStr}.json`;
-		const latestKey = `mnav-snapshots/${network}/latest.json`;
+		// Store in R2 (unless skipped)
+		if (!skipStorage) {
+			const dateStr = now.toISOString().slice(0, 10);
+			const timestampStr = now.toISOString().replace(/[:\-\.]/g, '').replace('000Z', 'Z');
+			const snapshotKey = `mnav-snapshots/${network}/${dateStr}/mnav-${timestampStr}.json`;
+			const latestKey = `mnav-snapshots/${network}/latest.json`;
 
-		const jsonContent = JSON.stringify(result, null, 2);
-		await Promise.all([
-			env.POINTS_BACKUP_BUCKET.put(snapshotKey, jsonContent, {
-				httpMetadata: { contentType: 'application/json' },
-			}),
-			env.POINTS_BACKUP_BUCKET.put(latestKey, jsonContent, {
-				httpMetadata: { contentType: 'application/json' },
-			}),
-		]);
-		console.log(`[mnav] Saved snapshot to ${snapshotKey}`);
+			const jsonContent = JSON.stringify(result, null, 2);
+			await Promise.all([
+				env.POINTS_BACKUP_BUCKET.put(snapshotKey, jsonContent, {
+					httpMetadata: { contentType: 'application/json' },
+				}),
+				env.POINTS_BACKUP_BUCKET.put(latestKey, jsonContent, {
+					httpMetadata: { contentType: 'application/json' },
+				}),
+			]);
+			console.log(`[mnav] Saved snapshot to ${snapshotKey}`);
+		}
 
-		// Send daily vault summary to Telegram
-		const telegramConfig: TelegramConfig = {
-			botToken: env.TELEGRAM_BOT_TOKEN_CRITICAL_ALERTS,
-			chatId: env.TELEGRAM_CHAT_ID_CRITICAL_ALERTS,
-		};
+		// Send daily vault summary to Telegram (unless skipped)
+		if (!skipTelegram) {
+			const telegramConfig: TelegramConfig = {
+				botToken: env.TELEGRAM_BOT_TOKEN_CRITICAL_ALERTS,
+				chatId: env.TELEGRAM_CHAT_ID_CRITICAL_ALERTS,
+			};
 
-		if (telegramConfig.botToken && telegramConfig.chatId) {
-			const priceUsd = Number(prices.wbtcUsd.div(Big(10).pow(DECIMALS.PRICE)).toString());
-			const summaryMessage = formatDailyVaultSummary({
-				ethWbtc: ethResult.result.balance,
-				snWbtc: starknetResult.result.wbtc,
-				snUsdu: starknetResult.result.usdu,
-				snUsdc: starknetResult.result.usdc,
-				extendedUsd: extendedResult.result.valueUsd,
-				individualPositions: individualPositionsResult.result.positions,
-				stabilityPoolUsdu: positions.uncap.totalSpUsdu,
-				priceUsd,
-				totalNavWbtc: totalWbtc,
-				totalNavUsd: totalUsdNum,
-			});
-			await sendTelegramAlert(telegramConfig, summaryMessage);
-			console.log('[mnav] Daily vault summary sent to Telegram');
-		} else {
-			console.warn('[mnav] Telegram credentials not configured, skipping daily summary');
+			if (telegramConfig.botToken && telegramConfig.chatId) {
+				const priceUsd = Number(prices.wbtcUsd.div(Big(10).pow(DECIMALS.PRICE)).toString());
+				const summaryMessage = formatDailyVaultSummary({
+					ethWbtc: ethResult.result.balance,
+					snWbtc: starknetResult.result.wbtc,
+					snUsdu: starknetResult.result.usdu,
+					snUsdc: starknetResult.result.usdc,
+					extendedUsd: extendedResult.result.valueUsd,
+					individualPositions: individualPositionsResult.result.positions,
+					stabilityPoolUsdu: positions.uncap.totalSpUsdu,
+					priceUsd,
+					totalNavWbtc: totalWbtc,
+					totalNavUsd: totalUsdNum,
+				});
+				await sendTelegramAlert(telegramConfig, summaryMessage);
+				console.log('[mnav] Daily vault summary sent to Telegram');
+			} else {
+				console.warn('[mnav] Telegram credentials not configured, skipping daily summary');
+			}
 		}
 
 		const elapsed = Date.now() - startTime;
