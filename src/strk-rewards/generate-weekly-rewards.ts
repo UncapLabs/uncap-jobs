@@ -79,7 +79,7 @@ const PROTOCOL = "Uncap";
 const WEEK_1_START = new Date("2025-11-13T00:00:00Z");
 
 // TBTC and SOLVBTC positions are only included starting from this date
-const MULTI_BRANCH_START_DATE = "2026-01-20";
+const MULTI_BRANCH_START_DATE = "2026-01-21";
 
 type DuneBindings = {
 	DUNE_API_KEY?: string;
