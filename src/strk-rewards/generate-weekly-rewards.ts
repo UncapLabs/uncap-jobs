@@ -66,6 +66,7 @@ interface RewardAllocation {
 }
 
 // Pool daily data from SNF (allocations only - totals come from Dune)
+// Map is keyed by "date|BRANCH" (e.g., "2026-01-19|WBTC")
 interface PoolDailyData {
 	supplyAllocation: number;
 	borrowAllocation: number;
@@ -155,30 +156,34 @@ async function fetchSNFPoolData(
 	// Build daily data map (allocations only)
 	const poolData = new Map<string, PoolDailyData>();
 
-	// Process lending data
+	// Process lending data - keyed by date|branch using asset_symbol
 	for (const item of lendingData.items) {
 		if (item.protocol !== PROTOCOL) continue;
 		if (item.date < startDate || item.date > endDate) continue;
 
-		const existing = poolData.get(item.date) || {
+		const branch = item.asset_symbol?.toUpperCase() || "WBTC";
+		const key = `${item.date}|${branch}`;
+		const existing = poolData.get(key) || {
 			supplyAllocation: 0,
 			borrowAllocation: 0,
 		};
 		existing.supplyAllocation += parseFloat(item.allocated_tokens);
-		poolData.set(item.date, existing);
+		poolData.set(key, existing);
 	}
 
-	// Process borrowing data
+	// Process borrowing data - keyed by date|branch using collateral_symbol
 	for (const item of borrowData.items) {
 		if (item.protocol !== PROTOCOL) continue;
 		if (item.date < startDate || item.date > endDate) continue;
 
-		const existing = poolData.get(item.date) || {
+		const branch = item.collateral_symbol?.toUpperCase() || "WBTC";
+		const key = `${item.date}|${branch}`;
+		const existing = poolData.get(key) || {
 			supplyAllocation: 0,
 			borrowAllocation: 0,
 		};
 		existing.borrowAllocation += parseFloat(item.allocated_tokens);
-		poolData.set(item.date, existing);
+		poolData.set(key, existing);
 	}
 
 	console.log(`[weekly-rewards] SNF pool data: ${poolData.size} days`);
@@ -241,48 +246,51 @@ async function fetchUserPositions(
 /**
  * Calculate per-user rewards based on proportional allocation
  * Uses Dune-summed totals as denominators (matching OBL methodology)
+ * Now processes per date|branch to match SNF's per-collateral allocations
  */
 function calculateUserRewards(
 	poolData: Map<string, PoolDailyData>,
 	userPositions: DuneUserPosition[],
 ): Map<string, number> {
-	// Group user positions by date
-	const positionsByDate = new Map<string, DuneUserPosition[]>();
+	// Group user positions by date|branch key
+	const positionsByKey = new Map<string, DuneUserPosition[]>();
 	for (const pos of userPositions) {
-		const existing = positionsByDate.get(pos.date) || [];
+		const branch = pos.branch_id?.toUpperCase() || "WBTC";
+		const key = `${pos.date}|${branch}`;
+		const existing = positionsByKey.get(key) || [];
 		existing.push(pos);
-		positionsByDate.set(pos.date, existing);
+		positionsByKey.set(key, existing);
 	}
 
-	// Compute daily totals from Dune positions (used as denominators)
-	const dailyTotals = new Map<string, { totalSupplyUsd: number; totalInterestUsd: number }>();
-	for (const [date, positions] of positionsByDate) {
+	// Compute totals per date|branch (used as denominators)
+	const totalsByKey = new Map<string, { totalSupplyUsd: number; totalInterestUsd: number }>();
+	for (const [key, positions] of positionsByKey) {
 		let totalSupplyUsd = 0;
 		let totalInterestUsd = 0;
 		for (const pos of positions) {
 			totalSupplyUsd += Math.max(pos.total_supplied_usd || 0, 0);
 			totalInterestUsd += Math.max(pos.interest_usd_daily || 0, 0);
 		}
-		dailyTotals.set(date, { totalSupplyUsd, totalInterestUsd });
+		totalsByKey.set(key, { totalSupplyUsd, totalInterestUsd });
 	}
 
 	// Track total rewards per user
 	const userRewards = new Map<string, number>();
 
-	// Process each day
-	for (const [date, pool] of poolData) {
-		const positions = positionsByDate.get(date) || [];
-		const totals = dailyTotals.get(date);
+	// Process each date|branch
+	for (const [key, pool] of poolData) {
+		const positions = positionsByKey.get(key) || [];
+		const totals = totalsByKey.get(key);
 		if (positions.length === 0 || !totals) {
-			console.log(`[weekly-rewards] No user positions for ${date}, skipping`);
+			console.log(`[weekly-rewards] No user positions for ${key}, skipping`);
 			continue;
 		}
 
 		console.log(
-			`[weekly-rewards] ${date}: ${positions.length} users, supply_alloc=${pool.supplyAllocation.toFixed(2)}, borrow_alloc=${pool.borrowAllocation.toFixed(2)}, total_supply=$${totals.totalSupplyUsd.toFixed(2)}, total_interest=$${totals.totalInterestUsd.toFixed(2)}`,
+			`[weekly-rewards] ${key}: ${positions.length} users, supply_alloc=${pool.supplyAllocation.toFixed(2)}, borrow_alloc=${pool.borrowAllocation.toFixed(2)}, total_supply=$${totals.totalSupplyUsd.toFixed(2)}, total_interest=$${totals.totalInterestUsd.toFixed(2)}`,
 		);
 
-		// Calculate each user's share for this day using Dune-summed totals
+		// Calculate each user's share for this day/branch using Dune-summed totals
 		for (const pos of positions) {
 			const userSupplyUsd = Math.max(pos.total_supplied_usd || 0, 0);
 			const userInterestUsd = Math.max(pos.interest_usd_daily || 0, 0);
