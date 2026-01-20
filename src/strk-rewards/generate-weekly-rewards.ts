@@ -47,6 +47,7 @@ interface SNFResponse<T> {
 
 // Dune query response types
 interface DuneUserPosition {
+	branch_id?: string; // 'WBTC' | 'solvBTC' | 'tBTC'
 	user: string;
 	date: string;
 	total_supplied_usd: number;
@@ -76,6 +77,9 @@ const PROTOCOL = "Uncap";
 
 // Week 1 starts on Thursday Nov 13, 2025
 const WEEK_1_START = new Date("2025-11-13T00:00:00Z");
+
+// TBTC and SOLVBTC positions are only included starting from this date
+const MULTI_BRANCH_START_DATE = "2026-01-20";
 
 type DuneBindings = {
 	DUNE_API_KEY?: string;
@@ -211,10 +215,25 @@ async function fetchUserPositions(
 	const allRows = data.result?.rows ?? [];
 
 	// Filter by date range (client-side)
-	const filteredRows = allRows.filter((row) => row.date >= startDate && row.date <= endDate);
+	const dateFilteredRows = allRows.filter((row) => row.date >= startDate && row.date <= endDate);
+
+	// Filter TBTC and SOLVBTC positions: only include them starting from MULTI_BRANCH_START_DATE
+	const filteredRows = dateFilteredRows.filter((row) => {
+		const branchId = row.branch_id?.toUpperCase();
+		// Always include WBTC positions (or positions without branch_id for backwards compatibility)
+		if (!branchId || branchId === "WBTC") {
+			return true;
+		}
+		// TBTC and SOLVBTC positions only included from MULTI_BRANCH_START_DATE onwards
+		if (branchId === "TBTC" || branchId === "SOLVBTC") {
+			return row.date >= MULTI_BRANCH_START_DATE;
+		}
+		// Include any other branch types by default
+		return true;
+	});
 
 	console.log(
-		`[weekly-rewards] Dune: fetched ${allRows.length} total rows, ${filteredRows.length} in date range`,
+		`[weekly-rewards] Dune: fetched ${allRows.length} total rows, ${dateFilteredRows.length} in date range, ${filteredRows.length} after branch filtering`,
 	);
 	return filteredRows;
 }

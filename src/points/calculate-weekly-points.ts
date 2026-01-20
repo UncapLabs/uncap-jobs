@@ -15,6 +15,7 @@ const LTV_MULTIPLIER_FACTOR = 2;
 const WEIGHT_DIVISOR = 12;
 
 type DuneRow = {
+	branch_id?: string; // 'WBTC' | 'solvBTC' | 'tBTC' | 'LP'
 	owner: string;
 	hour?: string;
 	snapshot_time?: string;
