@@ -131,21 +131,19 @@ const MAINNET_ADDRESSES: StarknetAddresses = {
 		},
 		TBTC: {
 			branchId: 1,
-			// TODO: Replace with mainnet addresses when available
-			collateral: '',
-			addressesRegistry: '',
-			troveManager: '',
-			stabilityPool: '',
-			priceFeed: '',
+			collateral: '0x04daa17763b286d1e59b97c283C0b8C949994C361e426A28F743c67bDfE9a32f',
+			addressesRegistry: '0x7f3317c9c26f3956759eb8de992e474dd8feaaccdd3f53d7c8e808503258d77',
+			troveManager: '0x770215e21f4d859974e02d2ae79b32cead9960a045afd8e11268ec89378f30d',
+			stabilityPool: '0xa36230f3d17cba0acb9635810209fe430c26ae585cbfd61e39cac0a9af6fc',
+			priceFeed: '0x7672126802b682faf602be34729f61039ae1af8aa33755343d51060cd4d44b1',
 		},
 		SOLVBTC: {
 			branchId: 2,
-			// TODO: Replace with mainnet addresses when available
-			collateral: '',
-			addressesRegistry: '',
-			troveManager: '',
-			stabilityPool: '',
-			priceFeed: '',
+			collateral: '0x0593e034DdA23eea82d2bA9a30960ED42CF4A01502Cc2351Dc9B9881F9931a68',
+			addressesRegistry: '0x74ffc9708c6d3b23ff6eb89a5b780ce1e23de71735b7e3353cde9172d5321af',
+			troveManager: '0x6eb9f8fec45728159366bde44a8b0668814e389a12cb64191a3094dc1ad2799',
+			stabilityPool: '0x154d14c879ce7dfe559628ed1abff2df38974efd27abf10d9236d05c6aa4741',
+			priceFeed: '0xc5de79107a6d3cdbec1a0d4820a24d7ab2bf1bbdfa3af092898c3fbbed6953',
 		},
 	},
 };
