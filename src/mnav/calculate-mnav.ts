@@ -46,6 +46,7 @@ const LTV_WARNING_THRESHOLD = 0.65;
  *        + starknet.wbtc (8 dec)
  *        + starknet.usdu (18 dec) / price (18 dec) * 10^8 -> 8 dec
  *        + starknet.usdc (6 dec) / price (18 dec) * 10^8 * 10^12 -> 8 dec
+ *        + starknet.usdcE (6 dec) / price (18 dec) * 10^8 * 10^12 -> 8 dec
  *        + uncap.totalCollateral (18 dec) / 10^10 -> 8 dec
  *        - uncap.totalDebt (18 dec) / price (18 dec) * 10^8 -> 8 dec
  *        + uncap.totalSpUsdu (18 dec) / price (18 dec) * 10^8 -> 8 dec
@@ -71,6 +72,9 @@ function calculateMnavValue(positions: Positions, prices: Prices): { totalWbtc: 
 	// Starknet USDC wallet balance -> WBTC (6 dec * 10^12 = 18 dec, then / 18 dec * 10^8 = 8 dec)
 	const starknetUsdcWbtc = positions.starknet.usdc.times(scale6to18).div(price).times(scale0to8);
 
+	// Starknet USDC.e wallet balance -> WBTC (6 dec * 10^12 = 18 dec, then / 18 dec * 10^8 = 8 dec)
+	const starknetUsdcEWbtc = positions.starknet.usdcE.times(scale6to18).div(price).times(scale0to8);
+
 	// Uncap collateral (18 dec -> 8 dec) - all BTC variants treated as 1:1
 	const uncapColl = positions.uncap.totalCollateral.div(scale18to8);
 
@@ -92,6 +96,7 @@ function calculateMnavValue(positions: Positions, prices: Prices): { totalWbtc: 
 		.plus(starknetWbtc)
 		.plus(starknetUsduWbtc)
 		.plus(starknetUsdcWbtc)
+		.plus(starknetUsdcEWbtc)
 		.plus(uncapColl)
 		.minus(uncapDebtWbtc)
 		.plus(spUsduWbtc)
@@ -135,6 +140,7 @@ function serializePositions(positions: Positions): SerializedPositions {
 			wbtc: positions.starknet.wbtc.toFixed(0),
 			usdu: positions.starknet.usdu.toFixed(0),
 			usdc: positions.starknet.usdc.toFixed(0),
+			usdcE: positions.starknet.usdcE.toFixed(0),
 		},
 		uncap: {
 			branches: {
@@ -197,6 +203,7 @@ interface VaultSummaryInput {
 	snWbtc: Big;
 	snUsdu: Big;
 	snUsdc: Big;
+	snUsdcE: Big;
 	extendedUsd: Big;
 	individualPositions: TrovePosition[];
 	stabilityPoolUsdu: Big;
@@ -224,6 +231,7 @@ function formatDailyVaultSummary(input: VaultSummaryInput): string {
 		snWbtc,
 		snUsdu,
 		snUsdc,
+		snUsdcE,
 		extendedUsd,
 		individualPositions,
 		stabilityPoolUsdu,
@@ -258,6 +266,7 @@ function formatDailyVaultSummary(input: VaultSummaryInput): string {
 		`WBTC: ${formatBtc(snWbtcNum)} ($${formatUsd(snWbtcNum * priceUsd)})`,
 		`USDU: ${formatUsd(snUsdu.div(1e18).toNumber())}`,
 		`USDC: ${formatUsd(snUsdc.div(1e6).toNumber())}`,
+		`USDC.e: ${formatUsd(snUsdcE.div(1e6).toNumber())}`,
 		''
 	);
 
@@ -380,7 +389,7 @@ export async function calculateMnav(env: Env, options: CalculateMnavOptions = {}
 
 		// Default values for fallbacks
 		const defaultEthWbtc = { balance: Big(0), blockNumber: 0 };
-		const defaultStarknetWallet = { wbtc: Big(0), usdu: Big(0), usdc: Big(0), blockNumber: 0 };
+		const defaultStarknetWallet = { wbtc: Big(0), usdu: Big(0), usdc: Big(0), usdcE: Big(0), blockNumber: 0 };
 		const defaultUncap = {
 			positions: createEmptyUncapPositions(),
 			blockNumber: 0,
@@ -434,6 +443,7 @@ export async function calculateMnav(env: Env, options: CalculateMnavOptions = {}
 				wbtc: starknetResult.result.wbtc,
 				usdu: starknetResult.result.usdu,
 				usdc: starknetResult.result.usdc,
+				usdcE: starknetResult.result.usdcE,
 			},
 			uncap: uncapResult.result.positions,
 			extended: { valueUsd: extendedResult.result.valueUsd },
@@ -510,6 +520,7 @@ export async function calculateMnav(env: Env, options: CalculateMnavOptions = {}
 					snWbtc: starknetResult.result.wbtc,
 					snUsdu: starknetResult.result.usdu,
 					snUsdc: starknetResult.result.usdc,
+					snUsdcE: starknetResult.result.usdcE,
 					extendedUsd: extendedResult.result.valueUsd,
 					individualPositions: individualPositionsResult.result.positions,
 					stabilityPoolUsdu: positions.uncap.totalSpUsdu,

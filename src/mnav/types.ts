@@ -34,6 +34,8 @@ export interface StarknetWalletPositions {
 	usdu: Big;
 	/** USDC balance in wallet on Starknet (6 decimals) */
 	usdc: Big;
+	/** USDC.e bridged balance in wallet on Starknet (6 decimals) */
+	usdcE: Big;
 }
 
 export interface StabilityPoolPosition {
@@ -151,7 +153,7 @@ export interface SerializedBranchPosition {
 /** Positions serialized as strings for JSON storage */
 export interface SerializedPositions {
 	ethereum: { wbtc: string };
-	starknet: { wbtc: string; usdu: string; usdc: string };
+	starknet: { wbtc: string; usdu: string; usdc: string; usdcE: string };
 	uncap: {
 		branches: {
 			WWBTC: SerializedBranchPosition;
@@ -195,6 +197,7 @@ export interface StarknetWalletResult {
 	wbtc: Big;
 	usdu: Big;
 	usdc: Big;
+	usdcE: Big;
 	blockNumber: number;
 }
 

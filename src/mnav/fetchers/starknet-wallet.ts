@@ -1,7 +1,7 @@
 /**
  * Starknet Wallet Balance Fetcher
  *
- * Fetches WBTC, USDU, and USDC balances for curator wallet on Starknet.
+ * Fetches WBTC, USDU, USDC, and USDC.e balances for curator wallet on Starknet.
  */
 
 import { RpcProvider, Contract } from 'starknet';
@@ -19,11 +19,11 @@ export async function fetchStarknetWallet(
 	// Validate inputs upfront - return zero balances if not configured (skip retries)
 	if (!rpcUrl || rpcUrl.trim() === '') {
 		console.warn('[mnav] Starknet wallet: Skipping - STARKNET_RPC_URL not configured');
-		return { wbtc: Big(0), usdu: Big(0), usdc: Big(0), blockNumber: 0 };
+		return { wbtc: Big(0), usdu: Big(0), usdc: Big(0), usdcE: Big(0), blockNumber: 0 };
 	}
 	if (!curatorAddress || !/^0x[a-fA-F0-9]+$/.test(curatorAddress) || curatorAddress.length < 10) {
 		console.warn(`[mnav] Starknet wallet: Skipping - CURATOR_STARKNET_ADDRESS invalid ("${curatorAddress}")`);
-		return { wbtc: Big(0), usdu: Big(0), usdc: Big(0), blockNumber: 0 };
+		return { wbtc: Big(0), usdu: Big(0), usdc: Big(0), usdcE: Big(0), blockNumber: 0 };
 	}
 
 	const addresses = getStarknetAddresses(network);
@@ -33,7 +33,7 @@ export async function fetchStarknetWallet(
 	const wbtcAddress = addresses.branches.WWBTC.underlying;
 	if (!wbtcAddress) {
 		console.warn('[mnav] Starknet wallet: No underlying WBTC address configured');
-		return { wbtc: Big(0), usdu: Big(0), usdc: Big(0), blockNumber: 0 };
+		return { wbtc: Big(0), usdu: Big(0), usdc: Big(0), usdcE: Big(0), blockNumber: 0 };
 	}
 
 	const result = await withRetry(
@@ -62,6 +62,17 @@ export async function fetchStarknetWallet(
 				usdcBalance = (await usdcContract.call('balance_of', [curatorAddress])) as bigint;
 			}
 
+			// USDC.e may not be available on sepolia
+			let usdcEBalance: bigint = BigInt(0);
+			if (addresses.USDC_E) {
+				const usdcEContract = new Contract({
+					abi: ERC20_ABI,
+					address: addresses.USDC_E,
+					providerOrAccount: provider,
+				});
+				usdcEBalance = (await usdcEContract.call('balance_of', [curatorAddress])) as bigint;
+			}
+
 			// Fetch balances
 			const [wbtcBalance, usduBalance, block] = await Promise.all([
 				wbtcContract.call('balance_of', [curatorAddress]),
@@ -73,6 +84,7 @@ export async function fetchStarknetWallet(
 				wbtcBalance: wbtcBalance as bigint,
 				usduBalance: usduBalance as bigint,
 				usdcBalance,
+				usdcEBalance,
 				block,
 			};
 		},
@@ -80,13 +92,14 @@ export async function fetchStarknetWallet(
 	);
 
 	console.log(
-		`[mnav] Starknet wallet - WBTC: ${result.wbtcBalance}, USDU: ${result.usduBalance}, USDC: ${result.usdcBalance} (block ${result.block})`
+		`[mnav] Starknet wallet - WBTC: ${result.wbtcBalance}, USDU: ${result.usduBalance}, USDC: ${result.usdcBalance}, USDC.e: ${result.usdcEBalance} (block ${result.block})`
 	);
 
 	return {
 		wbtc: Big(result.wbtcBalance.toString()),
 		usdu: Big(result.usduBalance.toString()),
 		usdc: Big(result.usdcBalance.toString()),
+		usdcE: Big(result.usdcEBalance.toString()),
 		blockNumber: result.block,
 	};
 }

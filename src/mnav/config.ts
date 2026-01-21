@@ -55,6 +55,8 @@ export interface StarknetAddresses {
 	USDU: string;
 	/** USDC stablecoin (6 decimals) - only on mainnet */
 	USDC?: string;
+	/** USDC.e bridged stablecoin (6 decimals) */
+	USDC_E?: string;
 	/** All collateral branches */
 	branches: {
 		WWBTC: BranchAddresses;
@@ -115,6 +117,7 @@ const SEPOLIA_ADDRESSES: StarknetAddresses = {
 const MAINNET_ADDRESSES: StarknetAddresses = {
 	USDU: '0x2f94539f80158f9a48a7acf3747718dfbec9b6f639e2742c1fb44ae7ab5aa04',
 	USDC: '0x33068f6539f8e6e6b131e6b2b814e6c34a5224bc66947c47dab9dfee93b35fb',
+	USDC_E: '0x53c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8',
 
 	branches: {
 		WWBTC: {
@@ -197,6 +200,8 @@ export const DECIMALS = {
 	USDU: 18,
 	/** USDC stablecoin (6 decimals) */
 	USDC: 6,
+	/** USDC.e bridged stablecoin (6 decimals) */
+	USDC_E: 6,
 	/** Price precision (18 decimals) */
 	PRICE: 18,
 } as const;
